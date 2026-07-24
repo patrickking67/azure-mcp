@@ -12,7 +12,9 @@
     "check": "tsc -p tsconfig.json --noEmit",
     "start": "node dist/index.js",
     "mcpb:validate": "mcpb validate manifest.json",
-    "mcpb:pack": "npm run build && mcpb pack . azure.mcpb"
+    "mcpb:pack": "npm run build && mcpb pack . azure.mcpb",
+    "prepack:prod": "npm ci --omit=dev",
+    "pack": "npm run build && npm ci --omit=dev && npx @anthropic-ai/mcpb@^2 pack . azure.mcpb && npm install"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.29.0",
