@@ -82,27 +82,62 @@ const CLIENT_ID = envValue("AZURE_CLIENT_ID");
 const CLIENT_SECRET = envValue("AZURE_CLIENT_SECRET");
 const SP_AUTH = Boolean(TENANT_ID && CLIENT_ID && CLIENT_SECRET);
 
-function resolveAzBinary(): string {
-  if (process.env.AZ_PATH && existsSync(process.env.AZ_PATH)) return process.env.AZ_PATH;
-  for (const candidate of ["/opt/homebrew/bin/az", "/usr/local/bin/az", "/usr/bin/az"]) {
-    if (existsSync(candidate)) return candidate;
+type AzInvocation = { command: string; prefix: string[]; source: string };
+
+// Windows has no az.exe: the launcher is az.cmd, and Node cannot spawn a .cmd without a shell.
+// Shelling out would mean building command strings, which is exactly the injection surface we
+// refuse to open. az.cmd itself just runs "python.exe -IBm azure.cli", so we resolve that
+// interpreter directly and keep every call on an argv array.
+function pythonForCliRoot(root: string): string | undefined {
+  const candidate = join(root, "python.exe");
+  return existsSync(candidate) ? candidate : undefined;
+}
+
+function resolveAzBinary(): AzInvocation {
+  if (process.env.AZ_PATH && existsSync(process.env.AZ_PATH)) {
+    return { command: process.env.AZ_PATH, prefix: [], source: "AZ_PATH" };
   }
-  return "az"; // fall back to PATH
+
+  if (process.platform === "win32") {
+    const roots = [
+      join(process.env["ProgramFiles(x86)"] ?? "C:\\Program Files (x86)", "Microsoft SDKs", "Azure", "CLI2"),
+      join(process.env.ProgramFiles ?? "C:\\Program Files", "Microsoft SDKs", "Azure", "CLI2"),
+    ];
+    for (const root of roots) {
+      const python = pythonForCliRoot(root);
+      if (python) return { command: python, prefix: ["-IBm", "azure.cli"], source: root };
+    }
+    // Fall back to whatever the PATH launcher points at, deriving <root>\python.exe from <root>\wbin\az.cmd.
+    for (const dir of (process.env.PATH ?? "").split(";")) {
+      for (const name of ["az.cmd", "az.bat"]) {
+        const launcher = join(dir, name);
+        if (!existsSync(launcher)) continue;
+        const python = pythonForCliRoot(dirname(dirname(launcher)));
+        if (python) return { command: python, prefix: ["-IBm", "azure.cli"], source: launcher };
+      }
+    }
+  }
+
+  for (const candidate of ["/opt/homebrew/bin/az", "/usr/local/bin/az", "/usr/bin/az"]) {
+    if (existsSync(candidate)) return { command: candidate, prefix: [], source: candidate };
+  }
+  return { command: "az", prefix: [], source: "PATH" };
 }
 
 const AZ = resolveAzBinary();
+const AZ_LABEL = AZ.prefix.length > 0 ? `${AZ.command} ${AZ.prefix.join(" ")}` : AZ.command;
 
 type CachedToken = { token: string; expiresAtMs: number };
 const tokenCache = new Map<string, CachedToken>();
 
 async function azJson(args: string[]): Promise<JsonValue> {
   try {
-    const { stdout } = await execFileAsync(AZ, args, { maxBuffer: 20 * 1024 * 1024 });
+    const { stdout } = await execFileAsync(AZ.command, [...AZ.prefix, ...args], { maxBuffer: 20 * 1024 * 1024 });
     return stdout ? (JSON.parse(stdout) as JsonValue) : null;
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : String(error);
     throw new AzureCliError(
-      `Azure CLI '${AZ} ${args.join(" ")}' failed. Ensure the Azure CLI is installed and 'az login' has been run, ` +
+      `Azure CLI '${AZ_LABEL} ${args.join(" ")}' failed. Ensure the Azure CLI is installed and 'az login' has been run, ` +
         `or configure a service principal (tenant id, client id, client secret) in the connector settings. ` +
         `If az is not on PATH (common under GUI apps), set AZ_PATH. Underlying error: ${message}`,
     );
@@ -2030,7 +2065,7 @@ server.registerResource(
 async function main(): Promise<void> {
   const transport = new StdioServerTransport();
   await server.connect(transport);
-  console.error(`Azure MCP server running on stdio (auth: ${SP_AUTH ? "service principal" : `azure cli via ${AZ}`})`);
+  console.error(`Azure MCP server running on stdio (auth: ${SP_AUTH ? "service principal" : `azure cli via ${AZ_LABEL}`})`);
 }
 
 main().catch((error: unknown) => {
