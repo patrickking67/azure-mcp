@@ -1,0 +1,29 @@
+{
+  "name": "azure-mcp-local",
+  "version": "0.3.0",
+  "private": true,
+  "type": "module",
+  "description": "Local stdio MCP server for Azure Resource Manager using Azure CLI passthrough auth.",
+  "bin": {
+    "azure-mcp-local": "dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "check": "tsc -p tsconfig.json --noEmit",
+    "start": "node dist/index.js",
+    "mcpb:validate": "mcpb validate manifest.json",
+    "mcpb:pack": "npm run build && mcpb pack . azure.mcpb"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.29.0",
+    "zod": "^4.1.12"
+  },
+  "devDependencies": {
+    "@anthropic-ai/mcpb": "^2.1.2",
+    "@types/node": "^24.0.0",
+    "typescript": "^5.9.0"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
