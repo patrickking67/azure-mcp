@@ -39194,9 +39194,11 @@ function localPathArgument(args) {
       continue;
     if (value === "." || value === ".." || /^(\/|\.\.?\/|~|\.\.?\\)/.test(value) || /^[A-Za-z]:[\\/]/.test(value))
       return value;
+    if (/(^|[\\/])\.\.([\\/]|$)/.test(value))
+      return value;
     if (/[./\\]/.test(value) && value.length < 1024) {
       try {
-        if (existsSync2(resolve(value)))
+        if (existsSync2(resolve(cliSandboxDir(), value)))
           return value;
       } catch {
       }
