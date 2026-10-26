@@ -1,29 +1,39 @@
 {
-  "name": "azure-mcp-local",
-  "version": "0.3.0",
+  "name": "azure-mcp",
+  "version": "1.0.0",
   "private": true,
   "type": "module",
-  "description": "Local stdio MCP server for Azure Resource Manager using Azure CLI passthrough auth.",
+  "description": "MCP server for Microsoft Azure and Entra ID: dedicated tools, the Azure CLI one-to-one, interactive views, and a remote Entra-protected lane.",
   "bin": {
-    "azure-mcp-local": "dist/index.js"
+    "azure-mcp": "dist/index.js",
+    "azure-mcp-remote": "dist/remote.js"
   },
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "check": "tsc -p tsconfig.json --noEmit",
     "start": "node dist/index.js",
-    "mcpb:validate": "mcpb validate manifest.json",
-    "mcpb:pack": "npm run build && mcpb pack . azure.mcpb",
-    "prepack:prod": "npm ci --omit=dev",
-    "pack": "npm run build && npm ci --omit=dev && npx @anthropic-ai/mcpb@^2 pack . azure.mcpb && npm install"
+    "start:remote": "node dist/remote.js",
+    "test": "npm run build && node scripts/build-plugin.mjs --check && node --test test/*.test.mjs",
+    "manifest": "node scripts/sync-manifest.mjs",
+    "manifest:check": "node scripts/sync-manifest.mjs --check",
+    "apps:runtime": "node scripts/generate-app-runtime.mjs",
+    "mcpb:validate": "npx --yes @anthropic-ai/mcpb@^2 validate manifest.json",
+    "mcpb:pack": "npm run build && npm run manifest && npm run mcpb:validate && node scripts/pack-mcpb.mjs azure.mcpb assets",
+    "deploy:plan": "bash scripts/deploy-azure.sh --dry-run",
+    "plugin:build": "npm run build && node scripts/build-plugin.mjs",
+    "plugin:check": "node scripts/build-plugin.mjs --check"
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.29.0",
-    "zod": "^4.1.12"
+    "@modelcontextprotocol/ext-apps": "^1.7.5",
+    "@modelcontextprotocol/sdk": "^1.32.2",
+    "jose": "^6.2.13",
+    "zod": "^4.6.7"
   },
   "devDependencies": {
     "@anthropic-ai/mcpb": "^2.1.2",
-    "@types/node": "^24.0.0",
-    "typescript": "^5.9.0"
+    "@types/node": "^24.19.2",
+    "esbuild": "^0.28.2",
+    "typescript": "^6.0.3"
   },
   "engines": {
     "node": ">=20"

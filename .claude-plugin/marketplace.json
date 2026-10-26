@@ -1,0 +1,13 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/marketplace.schema.json",
+  "name": "azure-mcp",
+  "owner": { "name": "Patrick King", "url": "https://github.com/patrickking67" },
+  "metadata": { "description": "Microsoft Azure and Entra ID tooling for Claude Code.", "version": "1.0.0" },
+  "plugins": [
+    {
+      "name": "azure",
+      "source": "./plugin",
+      "description": "Azure and Entra ID: 102 tools, the Azure CLI one-to-one, six interactive views. Read-only until the write gate is opened."
+    }
+  ]
+}

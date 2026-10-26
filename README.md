@@ -1,90 +1,119 @@
 # azure-mcp (server name: "Azure")
 
-Local stdio MCP server for **Microsoft Azure** with 89 tools. Authenticates by reusing your existing Azure CLI session (no stored secret) or, optionally, a service principal configured at install time. Node-based, so one `.mcpb` runs on Apple Silicon and Intel Macs (and Windows/Linux).
+MCP server for **Microsoft Azure and Entra ID**: 102 tools, the Azure CLI one-to-one, and six interactive views. Runs locally over stdio (the `.mcpb` bundle, Claude Code, Codex) or remotely on Azure Container Apps behind Entra ID, where every call runs as the signed-in user.
 
-## Prerequisite
+## Tools (102)
 
-- Azure CLI installed and logged in: `az login` (once). Verify with `az account show`.
-  - If `az account get-access-token` fails with `AADSTS135010`, re-run `az login` (stale token cache).
-- If `az` is not on PATH when launched by a desktop app, set `AZ_PATH` to its absolute path (e.g. `/opt/homebrew/bin/az`).
-- Alternative: configure a service principal (tenant id, client id, client secret) in the connector settings; then no `az` CLI is needed at all.
+Every dedicated tool carries its Azure CLI equivalent in its description and in the `azure://reference/api` resource.
 
-## Tools (89: 74 read, 15 write)
+| Kind | Tools |
+| --- | --- |
+| Read (84) | `List_*`, `Get_*`, `Query_*`, `Resource_Graph_Query`, `Resource_Health`, `ARM_GET`, `Graph_GET`, `Az_CLI`, `Az_CLI_Help`, `Status_Server`, `Status_Gate`, `Test_Connection` |
+| Write (7) | `Start_VM`, `Start_Web_App`, `Start_AKS_Cluster`, `Tag_Resource`, `Create_Resource_Group`, `Set_Key_Vault_Secret`, `Get_Key_Vault_Secret` (credential read) |
+| Destructive (11) | `Stop_VM`, `Restart_VM`, `Resize_VM`, `Stop_Web_App`, `Restart_Web_App`, `Stop_AKS_Cluster`, `Delete_Resource_Group`, `Delete_Resource`, `ARM_Request`, `Graph_Request`, `Az_CLI_Run` |
+| Interactive (6, read) | `View_Estate`, `View_Virtual_Machines`, `View_Web_Apps`, `View_Costs`, `View_Resources`, `View_Security` |
 
-Tool names are Title_Case (e.g. `Delete_Resource_Group`) so Claude's permission UI reads cleanly; each also carries a spaced `title` annotation. Read/write grouping comes from `readOnlyHint`/`destructiveHint` annotations.
+### The Azure CLI, one-to-one
 
-- Core: Test_Connection, List_Subscriptions, List_Locations, List_Resource_Groups, List_Resources, Get_Resource, Resource_Graph_Query, ARM_GET
-- Compute: List/Get_Virtual_Machine(s), List_VM_Scale_Sets, List_Disks, List_Snapshots, List_VM_Images
-- Network: List_Virtual_Networks, List_Subnets, List_Network_Security_Groups, List_NSG_Rules, List_Public_IPs, List_Network_Interfaces, List_Load_Balancers, List_Application_Gateways, List_Route_Tables, List_DNS_Zones, List_DNS_Records, List_Private_Endpoints
-- Storage: List_Storage_Accounts, List_Storage_Containers, List_File_Shares, List_Storage_Queues, List_Storage_Tables
-- Web: List_Web_Apps, Get_Web_App, List_Function_Apps, List_App_Service_Plans, List_Static_Web_Apps
-- Data: List_SQL_Servers, List_SQL_Databases, List_Cosmos_DB_Accounts, List_PostgreSQL_Servers, List_MySQL_Servers, List_Redis_Caches
-- Containers: List_AKS_Clusters, Get_AKS_Cluster, List_Container_Registries, List_Container_Apps, List_Container_Instances
-- Identity/security: List_Key_Vaults, List_Key_Vault_Secrets, Get_Key_Vault_Secret, List_Managed_Identities, List_Role_Assignments, List_Role_Definitions, List_Entra_Users, List_Entra_Groups, List_Entra_Applications, List_Security_Alerts, List_Secure_Scores, List_Policy_Assignments
-- Monitoring: List_Activity_Log, List_Fired_Alerts, List_Alert_Rules, Get_Metrics, List_Metric_Definitions, List_Diagnostic_Settings, List_Log_Analytics_Workspaces, Query_Log_Analytics, List_Application_Insights, Resource_Health
-- Cost/governance: Query_Costs, List_Budgets, List_Advisor_Recommendations
-- Messaging: List_Event_Hub_Namespaces, List_Service_Bus_Namespaces
-- Write (RBAC-bounded): Start/Stop/Restart/Resize_VM, Start/Stop/Restart_Web_App, Start/Stop_AKS_Cluster, Tag_Resource, Create/Delete_Resource_Group, Delete_Resource, Set_Key_Vault_Secret, ARM_Request
+- **`Az_CLI`** runs any read-only `az` command (`list`, `show`, `get-*`, `check-*`, `az rest --method get`). No gate.
+- **`Az_CLI_Run`** runs anything else. Each command is classified before it runs ([src/cli-policy.ts](src/cli-policy.ts)): creates and updates need write mode; `delete`, `purge`, `stop`, `deallocate`, `restart`, `regenerate`, `revoke` and other disruptive verbs also need the destructive gate. Reads that return credentials (any key, secret, credential, connection string, SAS, password, app settings or publishing profile command, or `--show-values`) count as writes. Complete-mode deployments, `resize`, `generalize`, `scale`, `update-instances` and anything that runs code on a machine (`run-command`, `command invoke`) need the destructive gate.
+- **`Az_CLI_Help`** returns `az <group> [<command>] --help` from the installed CLI.
 
-## Auth resolution (all config optional)
+Always refused: `login`, `account set`, `account get-access-token`, `config`, `extension add`, `upgrade`, interactive sessions (`ssh`, `exec`, `log tail`), `--debug`, local files (`@file` arguments, `~` paths, `--file`, `--template-file`, `--output-file` and similar flags), and `az rest` beyond a strict flag set and the exact hosts management.azure.com, graph.microsoft.com, api.loganalytics.io and `*.vault.azure.net`. Arguments are passed as an argv array; nothing goes through a shell.
 
-1. If `AZURE_TENANT_ID` + `AZURE_CLIENT_ID` + `AZURE_CLIENT_SECRET` are set: OAuth client-credentials directly against `login.microsoftonline.com` (no az CLI involved).
-2. Otherwise: `az account get-access-token` passthrough (`--tenant` added when `AZURE_TENANT_ID` alone is set). Tokens cached to expiry per resource (ARM, Graph, Key Vault, Log Analytics).
-3. Subscription: explicit `subscription_id` arg > `AZURE_SUBSCRIPTION_ID` > az default (or sole SP-visible subscription).
+### Interactive views (MCP Apps)
 
-Non-ARM planes used: Microsoft Graph (Entra tools), Key Vault data plane (secrets), `api.loganalytics.io` (KQL). ARM api-version errors are auto-negotiated: the server parses the "supported api-versions" error and retries once with the newest stable version.
+Rendered inline by hosts that support MCP Apps; other hosts get the same data as JSON.
 
-## Build
+- **Estate**: resources by type and region, resource groups, unhealthy resources, Advisor, secure score, month-to-date cost.
+- **Virtual Machines** / **Web Apps**: live state with Start / Deallocate (Stop) / Restart buttons. A button arms on the first click and fires on the second, calling the same gated tool with `confirm: true`.
+- **Costs**: total, daily trend, by service, by resource group, budgets.
+- **Resource Explorer**: every resource, filterable, with the full ARM document on click.
+- **Security**: secure score and weakest controls, active Defender alerts, Advisor security, Policy non-compliance.
+
+## Write gate
+
+The server starts **read-only**. Write tools stay listed and refuse with a message naming the setting.
+
+| Setting | Effect |
+| --- | --- |
+| `AZURE_MODE=write` (Mode) | Enables the write tier. |
+| `AZURE_ALLOW_DESTRUCTIVE=true` (Allow destructive operations) | Also enables the destructive tier. No effect without write mode. |
+| `confirm: true` | Required on every write call. |
+
+Remotely, callers also need the `Azure.Write` or `Azure.Destructive` Entra app role. Everything stays bounded by the identity's own RBAC and Graph permissions.
+
+## Auth
+
+`AZURE_AUTH` picks one explicitly (`azure_cli`, `service_principal`, `managed_identity`); `auto` (default) chooses:
+
+1. **Service principal** when `AZURE_TENANT_ID` + `AZURE_CLIENT_ID` + `AZURE_CLIENT_SECRET` are set.
+2. **Managed identity** when the host advertises one (`IDENTITY_ENDPOINT`, or IMDS with `AZURE_AUTH=managed_identity`).
+3. **Azure CLI** otherwise: `az account get-access-token` against your `az login`. If `az` is not on PATH under a desktop app, set `AZ_PATH`.
+
+The CLI tools run as the same identity: your own `az login`, or an isolated CLI profile (`AZURE_CONFIG_DIR` in a temp dir) signed in as the service principal or managed identity, so your `~/.azure` is never touched. Subscription: `subscription_id` argument > `AZURE_SUBSCRIPTION_ID` > the az default (or the identity's only subscription).
+
+## Install
+
+### Claude Desktop (.mcpb)
 
 ```bash
-npm install
-npm run build
+npm ci
+npm run mcpb:pack
 ```
 
-## Package the .mcpb bundle (Claude Desktop)
+Open `azure.mcpb` (Settings > Extensions > Install extension). All settings are optional; with none set it uses your `az login` in read mode.
 
-Pack from a clean staging dir so dev dependencies stay out of the bundle (~3.4MB instead of ~9.5MB):
+### Claude Code (plugin)
 
 ```bash
-npm run build && npx mcpb validate manifest.json
-STAGE=$(mktemp -d) && cp -R manifest.json package.json package-lock.json dist assets "$STAGE/" \
-  && (cd "$STAGE" && npm ci --omit=dev --silent && npx mcpb pack . Azure.mcpb) \
-  && cp "$STAGE/Azure.mcpb" ./azure.mcpb
+/plugin marketplace add patrickking67/azure-mcp
+/plugin install azure@azure-mcp
 ```
 
-Keep `manifest.json`'s `tools` array in sync with the server: run the server, take `tools/list`, and write `{name, description}` pairs into the manifest before packing.
+The plugin in [plugin/](plugin) runs a self-contained build of the server (`plugin/server/azure-mcp.mjs`, no `npm install`). It reads `AZURE_MODE`, `AZURE_ALLOW_DESTRUCTIVE`, `AZURE_SUBSCRIPTION_ID` and `AZ_PATH` from your shell environment; unset, it is read-only.
 
-Install in Claude Desktop: Settings > Extensions > install `azure.mcpb`. All config fields (subscription id, tenant id, client id, client secret, az path) are optional; with none set it uses your `az login` session.
-
-## Install in Claude Code
+Or without the plugin:
 
 ```bash
-claude mcp add azure --scope user \
-  --env AZURE_SUBSCRIPTION_ID=optional-default-sub \
-  -- node /Users/patrickking/Code/azure-mcp/dist/index.js
+claude mcp add azure --scope user --env AZURE_MODE=read -- node /Users/patrickking/GitHub/azure-mcp/dist/index.js
 ```
 
-## Install in Codex
+### Codex and ChatGPT desktop (plugin)
 
-Add to `~/.codex/config.toml`:
+The repository is also a Codex marketplace (`.agents/plugins/marketplace.json`, plugin manifest `plugin/plugin.json`, server in `plugin/mcp.json`). It works in the Codex CLI and in Codex inside the ChatGPT desktop app:
+
+```bash
+codex plugin marketplace add patrickking67/azure-mcp
+codex plugin add azure@azure-mcp
+```
+
+The plugin starts read-only. To enable writes in Codex, configure the server directly instead (`~/.codex/config.toml`):
 
 ```toml
 [mcp_servers.azure]
 command = "node"
-args = ["/Users/patrickking/Code/azure-mcp/dist/index.js"]
-env = { AZURE_SUBSCRIPTION_ID = "optional-default-sub" }
+args = ["/Users/patrickking/GitHub/azure-mcp/dist/index.js"]
+env = { AZURE_MODE = "write", AZURE_ALLOW_DESTRUCTIVE = "false" }
 ```
 
-## Test locally
+### ChatGPT (web and mobile)
+
+ChatGPT on the web cannot launch a local server. Use the remote lane below and add `<publicUrl>/mcp` as a connector. The interactive views carry the `openai/outputTemplate` metadata ChatGPT apps use.
+
+## Remote (Azure Container Apps + Entra ID)
+
+See [docs/remote.md](docs/remote.md). Short version: `infra/main.bicep` + `scripts/deploy-azure.sh` (plan by default) deploy the image; `scripts/entra-setup.sh` creates the app registration with a federated credential, so the on-behalf-of exchange needs no client secret.
+
+## Develop
 
 ```bash
-npm run build
+npm ci
+npm test               # build + unit + stdio smoke (fake az) + remote transport
+npm run manifest       # rewrite manifest.json tools from the running server
+npm run apps:runtime   # re-inline the ext-apps browser runtime after upgrading it
+npm run plugin:build   # rebuild plugin/server/azure-mcp.mjs after changing src/
 npx @modelcontextprotocol/inspector node dist/index.js
 ```
 
-## Notes
-
-- Write tools are asynchronous where Azure is (VM start/stop return 202 Accepted) and are limited to what your signed-in identity can do (RBAC).
-- List calls follow ARM `nextLink` pagination up to a safety cap (20 pages) and report `truncated`.
-- `Get_Key_Vault_Secret` returns the secret value; it is read-only but sensitive.
-- The MCP resource `azure://reference/api` documents every tool's method, path, and api-version.
+Layout: `src/server.ts` builds the server for both transports; `src/tools/*` hold the tools (registered through `defineTool`, which applies tier, gate, confirm and the CLI equivalent); `src/apps/*` the views; `src/auth.ts` token sources; `src/cli-policy.ts` the CLI classifier; `src/remote.ts` + `src/entra.ts` the remote lane.

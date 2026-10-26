@@ -1,0 +1,9 @@
+// Copy to infra/main.bicepparam (gitignored) and fill in. Identifiers only; no secrets belong here.
+using './main.bicep'
+
+param entraTenantId = '00000000-0000-0000-0000-000000000000'
+param entraClientId = '00000000-0000-0000-0000-000000000000'
+param remoteIdentity = 'on_behalf_of'
+param azureMode = 'read'
+param allowDestructive = false
+param defaultSubscriptionId = ''

@@ -1,0 +1,31 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "azure",
+  "version": "1.0.0",
+  "description": "Microsoft Azure and Entra ID: 102 tools, the full Azure CLI one-to-one, and six interactive views (estate, VMs, web apps, costs, resources, security). Uses your az login. Read-only until you set AZURE_MODE=write; deletes, stops and restarts also need AZURE_ALLOW_DESTRUCTIVE=true.",
+  "author": {
+    "name": "Patrick King",
+    "url": "https://github.com/patrickking67"
+  },
+  "homepage": "https://github.com/patrickking67/azure-mcp",
+  "repository": "https://github.com/patrickking67/azure-mcp",
+  "license": "UNLICENSED",
+  "keywords": [
+    "azure",
+    "entra",
+    "azure-cli",
+    "arm",
+    "cloud",
+    "cost",
+    "security",
+    "mcp",
+    "mcp-apps"
+  ],
+  "extensions": {
+    "com.openai": {
+      "interface": {
+        "displayName": "Azure"
+      }
+    }
+  }
+}

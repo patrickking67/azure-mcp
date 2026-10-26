@@ -3,9 +3,9 @@
   "manifest_version": "0.4",
   "name": "azure",
   "display_name": "Azure",
-  "version": "0.3.0",
-  "description": "Manage Azure and Entra ID from Claude. 91 tools, full read and write, using your existing az login.",
-  "long_description": "Read and operate Microsoft Azure and Entra ID through your own account.\n\nAuthentication uses the Azure CLI session already on your machine, so there is no key to paste and no secret stored in the bundle. A service principal can be configured instead when you need an unattended identity.\n\nCoverage spans the resource plane and the directory. Compute, networking, storage, databases, containers, Key Vault, monitoring, cost, and security all have dedicated tools, with ARM_GET and ARM_Request as escape hatches for anything not covered. Graph_GET and Graph_Request reach past the resource boundary into Entra ID, app registrations, Conditional Access, and Intune device management.\n\nWrites are real: start and stop virtual machines, web apps, and AKS clusters; resize and tag resources; create and delete resource groups; set Key Vault secrets; and issue arbitrary ARM or Graph calls. Every operation is bounded by the RBAC and Graph permissions of the signed-in identity. The server grants nothing on its own and cannot exceed what you can already do.\n\nRuns on macOS, Windows, and Linux. Windows has no az.exe, so the bundle resolves the Azure CLI's own interpreter rather than spawning a shell.",
+  "version": "1.0.0",
+  "description": "Manage Azure and Entra ID from Claude: 102 tools, the full Azure CLI one-to-one, and six interactive views. Uses your existing az login; read-only until you open the write gate.",
+  "long_description": "Read and operate Microsoft Azure and Entra ID through your own account.\n\nAuthentication uses the Azure CLI session already on your machine, so there is no key to paste and no secret stored in the bundle. A service principal can be configured instead when you need an unattended identity.\n\nDedicated tools cover compute, networking, storage, databases, containers, Key Vault, monitoring, cost, security and Entra ID, each annotated with its Azure CLI equivalent. For everything else the Azure CLI itself is available one-to-one: Azure CLI (Read) runs any list/show/get command, Azure CLI (Run) runs any other command, and Azure CLI Help shows a command's arguments. ARM and Microsoft Graph escape hatches remain for raw REST.\n\nSix interactive views render inside Claude: an estate overview, a virtual machine board and a web app board with Start/Stop/Restart buttons, a cost view with a daily trend and budgets, a resource explorer, and a security posture page.\n\nWrites are real but gated. The connector starts read-only. Set Mode to write to enable creates and updates; set Allow destructive operations as well for deletes, stops, restarts and anything else disruptive. Every write also needs an explicit confirm on the call, and Azure CLI commands are classified per command, so a delete through the CLI needs the same gates as Delete Resource. Commands that print tokens, change your CLI sign-in or read local files are refused outright. Every operation is bounded by the RBAC and Graph permissions of the signed-in identity.\n\nRuns on macOS, Windows, and Linux. Windows has no az.exe, so the bundle resolves the Azure CLI's own interpreter rather than spawning a shell.",
   "author": {
     "name": "Patrick King"
   },
@@ -30,7 +30,9 @@
         "AZURE_TENANT_ID": "${user_config.azure_tenant_id}",
         "AZURE_CLIENT_ID": "${user_config.azure_client_id}",
         "AZURE_CLIENT_SECRET": "${user_config.azure_client_secret}",
-        "AZ_PATH": "${user_config.az_path}"
+        "AZ_PATH": "${user_config.az_path}",
+        "AZURE_MODE": "${user_config.azure_mode}",
+        "AZURE_ALLOW_DESTRUCTIVE": "${user_config.azure_allow_destructive}"
       }
     }
   },
@@ -53,7 +55,11 @@
     "kql",
     "log-analytics",
     "defender",
-    "advisor"
+    "advisor",
+    "cli",
+    "az",
+    "mcp-apps",
+    "interactive"
   ],
   "license": "UNLICENSED",
   "compatibility": {
@@ -97,364 +103,430 @@
       "title": "Path to az binary (optional)",
       "description": "Absolute path to the Azure CLI if it is not on PATH (common when launched by a desktop app), e.g. /opt/homebrew/bin/az.",
       "required": false
+    },
+    "azure_mode": {
+      "type": "string",
+      "title": "Mode",
+      "description": "read or write. In read mode write tools stay listed and refuse, naming this setting. Set write to let Claude create and change resources.",
+      "required": false,
+      "default": "read"
+    },
+    "azure_allow_destructive": {
+      "type": "string",
+      "title": "Allow destructive operations",
+      "description": "true or false. The second gate for deletes, stops, deallocations, restarts, key regeneration and other disruptive operations, including the same commands through the Azure CLI tools. Has no effect unless Mode is write.",
+      "required": false,
+      "default": "false"
     }
   },
   "tools": [
     {
-      "name": "List_Locations",
-      "description": "List Azure regions available to a subscription."
+      "name": "Server Status",
+      "description": "Report this server's configuration without calling Azure: version, auth mode, which settings are filled in, the Azure CLI it found, and the write gate."
     },
     {
-      "name": "List_Storage_Accounts",
-      "description": "List storage accounts in a subscription."
+      "name": "Write Gate Status",
+      "description": "Report whether write and destructive tools are enabled, and which setting opens each gate."
     },
     {
-      "name": "List_Web_Apps",
-      "description": "List App Service web apps and function apps in a subscription."
+      "name": "Test Connection",
+      "description": "Check Azure authentication (Azure CLI, service principal, managed identity or on-behalf-of) and report the identity and reachable subscriptions."
     },
     {
-      "name": "List_Function_Apps",
-      "description": "List Azure Functions apps in a subscription."
-    },
-    {
-      "name": "List_App_Service_Plans",
-      "description": "List App Service plans in a subscription."
-    },
-    {
-      "name": "List_Static_Web_Apps",
-      "description": "List Static Web Apps in a subscription."
-    },
-    {
-      "name": "List_SQL_Servers",
-      "description": "List Azure SQL logical servers in a subscription."
-    },
-    {
-      "name": "List_Cosmos_DB_Accounts",
-      "description": "List Azure Cosmos DB database accounts in a subscription."
-    },
-    {
-      "name": "List_PostgreSQL_Servers",
-      "description": "List Azure Database for PostgreSQL flexible servers in a subscription."
-    },
-    {
-      "name": "List_MySQL_Servers",
-      "description": "List Azure Database for MySQL flexible servers in a subscription."
-    },
-    {
-      "name": "List_Redis_Caches",
-      "description": "List Azure Cache for Redis instances in a subscription."
-    },
-    {
-      "name": "List_Key_Vaults",
-      "description": "List key vaults in a subscription."
-    },
-    {
-      "name": "List_AKS_Clusters",
-      "description": "List AKS managed clusters in a subscription."
-    },
-    {
-      "name": "List_Container_Registries",
-      "description": "List Azure Container Registry instances in a subscription."
-    },
-    {
-      "name": "List_Container_Apps",
-      "description": "List Azure Container Apps in a subscription."
-    },
-    {
-      "name": "List_Container_Instances",
-      "description": "List Azure Container Instances container groups in a subscription."
-    },
-    {
-      "name": "List_Disks",
-      "description": "List managed disks in a subscription."
-    },
-    {
-      "name": "List_Snapshots",
-      "description": "List managed disk snapshots in a subscription."
-    },
-    {
-      "name": "List_VM_Images",
-      "description": "List custom VM images in a subscription."
-    },
-    {
-      "name": "List_VM_Scale_Sets",
-      "description": "List virtual machine scale sets in a subscription."
-    },
-    {
-      "name": "List_Public_IPs",
-      "description": "List public IP addresses in a subscription."
-    },
-    {
-      "name": "List_Network_Security_Groups",
-      "description": "List network security groups in a subscription."
-    },
-    {
-      "name": "List_Virtual_Networks",
-      "description": "List virtual networks in a subscription."
-    },
-    {
-      "name": "List_Network_Interfaces",
-      "description": "List network interfaces (NICs) in a subscription."
-    },
-    {
-      "name": "List_Load_Balancers",
-      "description": "List load balancers in a subscription."
-    },
-    {
-      "name": "List_Application_Gateways",
-      "description": "List application gateways in a subscription."
-    },
-    {
-      "name": "List_Route_Tables",
-      "description": "List route tables in a subscription."
-    },
-    {
-      "name": "List_DNS_Zones",
-      "description": "List public and private DNS zones in a subscription."
-    },
-    {
-      "name": "List_Private_Endpoints",
-      "description": "List private endpoints in a subscription."
-    },
-    {
-      "name": "List_Managed_Identities",
-      "description": "List user-assigned managed identities in a subscription."
-    },
-    {
-      "name": "List_Log_Analytics_Workspaces",
-      "description": "List Log Analytics workspaces in a subscription. The workspace customer_id is what Query Log Analytics expects."
-    },
-    {
-      "name": "List_Application_Insights",
-      "description": "List Application Insights components in a subscription."
-    },
-    {
-      "name": "List_Event_Hub_Namespaces",
-      "description": "List Event Hubs namespaces in a subscription."
-    },
-    {
-      "name": "List_Service_Bus_Namespaces",
-      "description": "List Service Bus namespaces in a subscription."
-    },
-    {
-      "name": "List_Alert_Rules",
-      "description": "List metric alert rules configured in a subscription."
-    },
-    {
-      "name": "List_Fired_Alerts",
-      "description": "List alerts fired across Azure Monitor for a subscription (Alerts Management)."
-    },
-    {
-      "name": "List_Security_Alerts",
-      "description": "List Microsoft Defender for Cloud security alerts in a subscription."
-    },
-    {
-      "name": "List_Secure_Scores",
-      "description": "List Microsoft Defender for Cloud secure scores for a subscription."
-    },
-    {
-      "name": "List_Policy_Assignments",
-      "description": "List Azure Policy assignments in a subscription."
-    },
-    {
-      "name": "List_Budgets",
-      "description": "List Cost Management budgets for a subscription."
-    },
-    {
-      "name": "Test_Connection",
-      "description": "Check Azure authentication (service principal or Azure CLI) and report the identity and reachable subscriptions."
-    },
-    {
-      "name": "List_Subscriptions",
+      "name": "List Subscriptions",
       "description": "List subscriptions the signed-in identity can access."
     },
     {
-      "name": "List_Resource_Groups",
+      "name": "List Resource Groups",
       "description": "List resource groups in a subscription."
     },
     {
-      "name": "List_Resources",
+      "name": "List Resources",
       "description": "List resources in a subscription, optionally filtered by type or resource group."
     },
     {
-      "name": "Get_Resource",
-      "description": "Get any resource by its full ARM resource id. The api-version is negotiated automatically unless provided."
+      "name": "Get Resource",
+      "description": "Get any resource by its full ARM resource id."
     },
     {
-      "name": "List_Virtual_Machines",
-      "description": "List virtual machines in a subscription, optionally with power state."
-    },
-    {
-      "name": "Get_Virtual_Machine",
-      "description": "Get a virtual machine with its configuration and current power state."
-    },
-    {
-      "name": "Resource_Health",
-      "description": "Report availability status for resources in a subscription."
-    },
-    {
-      "name": "List_Advisor_Recommendations",
-      "description": "List Azure Advisor recommendations for a subscription, optionally filtered by category."
-    },
-    {
-      "name": "List_Role_Assignments",
-      "description": "List role assignments in a subscription."
-    },
-    {
-      "name": "List_Role_Definitions",
-      "description": "List RBAC role definitions visible at subscription scope, optionally custom roles only."
-    },
-    {
-      "name": "List_Activity_Log",
-      "description": "List activity log events in a subscription from a start time."
-    },
-    {
-      "name": "Resource_Graph_Query",
+      "name": "Resource Graph Query",
       "description": "Run a Resource Graph (KQL) query across subscription resources."
     },
     {
-      "name": "List_SQL_Databases",
-      "description": "List databases on an Azure SQL server."
-    },
-    {
-      "name": "List_Subnets",
-      "description": "List subnets in a virtual network."
-    },
-    {
-      "name": "List_NSG_Rules",
-      "description": "List the security rules (custom and default) of a network security group."
-    },
-    {
-      "name": "List_DNS_Records",
-      "description": "List all record sets in a DNS zone."
-    },
-    {
-      "name": "List_Storage_Containers",
-      "description": "List blob containers in a storage account (via ARM, no data-plane access needed)."
-    },
-    {
-      "name": "List_File_Shares",
-      "description": "List file shares in a storage account (via ARM)."
-    },
-    {
-      "name": "List_Storage_Queues",
-      "description": "List queues in a storage account (via ARM)."
-    },
-    {
-      "name": "List_Storage_Tables",
-      "description": "List tables in a storage account (via ARM)."
-    },
-    {
-      "name": "Get_Web_App",
-      "description": "Get an App Service web app or function app with its configuration summary."
-    },
-    {
-      "name": "Get_AKS_Cluster",
-      "description": "Get an AKS managed cluster with node pool and network summary."
-    },
-    {
-      "name": "List_Key_Vault_Secrets",
-      "description": "List secret names and metadata in a key vault (never returns secret values). Requires data-plane access (RBAC or access policy)."
-    },
-    {
-      "name": "Get_Key_Vault_Secret",
-      "description": "Get a secret's current value from a key vault. Returns the secret value - use only when the value itself is needed."
-    },
-    {
-      "name": "List_Entra_Users",
-      "description": "List Microsoft Entra ID (Azure AD) users via Microsoft Graph. Requires directory read permission."
-    },
-    {
-      "name": "List_Entra_Groups",
-      "description": "List Microsoft Entra ID (Azure AD) groups via Microsoft Graph. Requires directory read permission."
-    },
-    {
-      "name": "List_Entra_Applications",
-      "description": "List Microsoft Entra ID app registrations via Microsoft Graph. Requires directory read permission."
-    },
-    {
-      "name": "Get_Metrics",
-      "description": "Get Azure Monitor metrics for a resource, e.g. CPU for a VM. Use List Metric Definitions to discover metric names."
-    },
-    {
-      "name": "List_Metric_Definitions",
-      "description": "List the metrics available for a resource (names, units, supported aggregations)."
-    },
-    {
-      "name": "List_Diagnostic_Settings",
-      "description": "List diagnostic settings configured on a resource (where logs and metrics are routed)."
-    },
-    {
-      "name": "Query_Log_Analytics",
-      "description": "Run a KQL query against a Log Analytics workspace. Use List Log Analytics Workspaces to find the workspace customer_id (GUID)."
-    },
-    {
-      "name": "Query_Costs",
-      "description": "Query subscription cost data from Cost Management, grouped by a dimension (default: service name)."
-    },
-    {
-      "name": "Start_VM",
-      "description": "Start a virtual machine."
-    },
-    {
-      "name": "Stop_VM",
-      "description": "Deallocate (stop) a virtual machine to halt compute billing."
-    },
-    {
-      "name": "Restart_VM",
-      "description": "Restart a virtual machine."
-    },
-    {
-      "name": "Resize_VM",
-      "description": "Change a virtual machine's size (SKU). The VM restarts as part of the resize."
-    },
-    {
-      "name": "Start_Web_App",
-      "description": "Start an App Service web app or function app."
-    },
-    {
-      "name": "Stop_Web_App",
-      "description": "Stop an App Service web app or function app."
-    },
-    {
-      "name": "Restart_Web_App",
-      "description": "Restart an App Service web app or function app."
-    },
-    {
-      "name": "Start_AKS_Cluster",
-      "description": "Start a stopped AKS cluster."
-    },
-    {
-      "name": "Stop_AKS_Cluster",
-      "description": "Stop a running AKS cluster to pause compute billing."
-    },
-    {
-      "name": "Tag_Resource",
-      "description": "Merge tags onto a resource by ARM resource id."
-    },
-    {
-      "name": "Create_Resource_Group",
-      "description": "Create or update a resource group."
-    },
-    {
-      "name": "Delete_Resource_Group",
-      "description": "Delete a resource group and all resources in it."
-    },
-    {
-      "name": "Delete_Resource",
-      "description": "Delete a single resource by its full ARM resource id. Irreversible."
-    },
-    {
-      "name": "Set_Key_Vault_Secret",
-      "description": "Create or update a secret in a key vault. Requires data-plane write access."
-    },
-    {
-      "name": "ARM_GET",
+      "name": "ARM GET",
       "description": "Perform a read-only GET against any Azure Resource Manager path (GET only; no writes)."
     },
     {
-      "name": "ARM_Request",
-      "description": "Escape hatch: perform a write (POST, PUT, PATCH, DELETE) against any Azure Resource Manager path. Use the specific tools when one exists."
+      "name": "ARM Request",
+      "description": "Escape hatch: perform a write (POST, PUT, PATCH, DELETE) against any Azure Resource Manager path."
+    },
+    {
+      "name": "List Locations",
+      "description": "List Azure regions available to a subscription."
+    },
+    {
+      "name": "List Storage Accounts",
+      "description": "List storage accounts in a subscription."
+    },
+    {
+      "name": "List Web Apps",
+      "description": "List App Service web apps and function apps in a subscription."
+    },
+    {
+      "name": "List Function Apps",
+      "description": "List Azure Functions apps in a subscription."
+    },
+    {
+      "name": "List App Service Plans",
+      "description": "List App Service plans in a subscription."
+    },
+    {
+      "name": "List Static Web Apps",
+      "description": "List Static Web Apps in a subscription."
+    },
+    {
+      "name": "List SQL Servers",
+      "description": "List Azure SQL logical servers in a subscription."
+    },
+    {
+      "name": "List Cosmos DB Accounts",
+      "description": "List Azure Cosmos DB database accounts in a subscription."
+    },
+    {
+      "name": "List PostgreSQL Servers",
+      "description": "List Azure Database for PostgreSQL flexible servers in a subscription."
+    },
+    {
+      "name": "List MySQL Servers",
+      "description": "List Azure Database for MySQL flexible servers in a subscription."
+    },
+    {
+      "name": "List Redis Caches",
+      "description": "List Azure Cache for Redis instances in a subscription."
+    },
+    {
+      "name": "List Key Vaults",
+      "description": "List key vaults in a subscription."
+    },
+    {
+      "name": "List AKS Clusters",
+      "description": "List AKS managed clusters in a subscription."
+    },
+    {
+      "name": "List Container Registries",
+      "description": "List Azure Container Registry instances in a subscription."
+    },
+    {
+      "name": "List Container Apps",
+      "description": "List Azure Container Apps in a subscription."
+    },
+    {
+      "name": "List Container Instances",
+      "description": "List Azure Container Instances container groups in a subscription."
+    },
+    {
+      "name": "List Disks",
+      "description": "List managed disks in a subscription."
+    },
+    {
+      "name": "List Snapshots",
+      "description": "List managed disk snapshots in a subscription."
+    },
+    {
+      "name": "List VM Images",
+      "description": "List custom VM images in a subscription."
+    },
+    {
+      "name": "List VM Scale Sets",
+      "description": "List virtual machine scale sets in a subscription."
+    },
+    {
+      "name": "List Public IPs",
+      "description": "List public IP addresses in a subscription."
+    },
+    {
+      "name": "List Network Security Groups",
+      "description": "List network security groups in a subscription."
+    },
+    {
+      "name": "List Virtual Networks",
+      "description": "List virtual networks in a subscription."
+    },
+    {
+      "name": "List Network Interfaces",
+      "description": "List network interfaces (NICs) in a subscription."
+    },
+    {
+      "name": "List Load Balancers",
+      "description": "List load balancers in a subscription."
+    },
+    {
+      "name": "List Application Gateways",
+      "description": "List application gateways in a subscription."
+    },
+    {
+      "name": "List Route Tables",
+      "description": "List route tables in a subscription."
+    },
+    {
+      "name": "List DNS Zones",
+      "description": "List public and private DNS zones in a subscription."
+    },
+    {
+      "name": "List Private Endpoints",
+      "description": "List private endpoints in a subscription."
+    },
+    {
+      "name": "List Managed Identities",
+      "description": "List user-assigned managed identities in a subscription."
+    },
+    {
+      "name": "List Log Analytics Workspaces",
+      "description": "List Log Analytics workspaces in a subscription."
+    },
+    {
+      "name": "List Application Insights",
+      "description": "List Application Insights components in a subscription."
+    },
+    {
+      "name": "List Event Hub Namespaces",
+      "description": "List Event Hubs namespaces in a subscription."
+    },
+    {
+      "name": "List Service Bus Namespaces",
+      "description": "List Service Bus namespaces in a subscription."
+    },
+    {
+      "name": "List Alert Rules",
+      "description": "List metric alert rules configured in a subscription."
+    },
+    {
+      "name": "List Fired Alerts",
+      "description": "List alerts fired across Azure Monitor for a subscription (Alerts Management)."
+    },
+    {
+      "name": "List Security Alerts",
+      "description": "List Microsoft Defender for Cloud security alerts in a subscription."
+    },
+    {
+      "name": "List Secure Scores",
+      "description": "List Microsoft Defender for Cloud secure scores for a subscription."
+    },
+    {
+      "name": "List Policy Assignments",
+      "description": "List Azure Policy assignments in a subscription."
+    },
+    {
+      "name": "List Budgets",
+      "description": "List Cost Management budgets for a subscription."
+    },
+    {
+      "name": "List Virtual Machines",
+      "description": "List virtual machines in a subscription, optionally with power state."
+    },
+    {
+      "name": "Get Virtual Machine",
+      "description": "Get a virtual machine with its configuration and current power state."
+    },
+    {
+      "name": "Start VM",
+      "description": "Start a virtual machine."
+    },
+    {
+      "name": "Stop VM",
+      "description": "Deallocate (stop) a virtual machine to halt compute billing."
+    },
+    {
+      "name": "Restart VM",
+      "description": "Restart a virtual machine."
+    },
+    {
+      "name": "Resize VM",
+      "description": "Change a virtual machine's size (SKU)."
+    },
+    {
+      "name": "Get Web App",
+      "description": "Get an App Service web app or function app with its configuration summary."
+    },
+    {
+      "name": "Start Web App",
+      "description": "Start an App Service web app or function app."
+    },
+    {
+      "name": "Stop Web App",
+      "description": "Stop an App Service web app or function app."
+    },
+    {
+      "name": "Restart Web App",
+      "description": "Restart an App Service web app or function app."
+    },
+    {
+      "name": "Get AKS Cluster",
+      "description": "Get an AKS managed cluster with node pool and network summary."
+    },
+    {
+      "name": "Start AKS Cluster",
+      "description": "Start a stopped AKS cluster."
+    },
+    {
+      "name": "Stop AKS Cluster",
+      "description": "Stop a running AKS cluster to pause compute billing."
+    },
+    {
+      "name": "Resource Health",
+      "description": "Report availability status for resources in a subscription."
+    },
+    {
+      "name": "List Advisor Recommendations",
+      "description": "List Azure Advisor recommendations for a subscription, optionally filtered by category."
+    },
+    {
+      "name": "List Role Assignments",
+      "description": "List role assignments in a subscription."
+    },
+    {
+      "name": "List Role Definitions",
+      "description": "List RBAC role definitions visible at subscription scope, optionally custom roles only."
+    },
+    {
+      "name": "List Activity Log",
+      "description": "List activity log events in a subscription from a start time."
+    },
+    {
+      "name": "Query Costs",
+      "description": "Query subscription cost data from Cost Management, grouped by a dimension (default: service name)."
+    },
+    {
+      "name": "Tag Resource",
+      "description": "Merge tags onto a resource by ARM resource id."
+    },
+    {
+      "name": "Create Resource Group",
+      "description": "Create or update a resource group."
+    },
+    {
+      "name": "Delete Resource Group",
+      "description": "Delete a resource group and all resources in it."
+    },
+    {
+      "name": "Delete Resource",
+      "description": "Delete a single resource by its full ARM resource id."
+    },
+    {
+      "name": "List SQL Databases",
+      "description": "List databases on an Azure SQL server."
+    },
+    {
+      "name": "List Subnets",
+      "description": "List subnets in a virtual network."
+    },
+    {
+      "name": "List NSG Rules",
+      "description": "List the security rules (custom and default) of a network security group."
+    },
+    {
+      "name": "List DNS Records",
+      "description": "List all record sets in a DNS zone."
+    },
+    {
+      "name": "List Storage Containers",
+      "description": "List blob containers in a storage account (via ARM, no data-plane access needed)."
+    },
+    {
+      "name": "List File Shares",
+      "description": "List file shares in a storage account (via ARM)."
+    },
+    {
+      "name": "List Storage Queues",
+      "description": "List queues in a storage account (via ARM)."
+    },
+    {
+      "name": "List Storage Tables",
+      "description": "List tables in a storage account (via ARM)."
+    },
+    {
+      "name": "List Key Vault Secrets",
+      "description": "List secret names and metadata in a key vault (never returns secret values)."
+    },
+    {
+      "name": "Get Key Vault Secret",
+      "description": "Get a secret's current value from a key vault."
+    },
+    {
+      "name": "Set Key Vault Secret",
+      "description": "Create or update a secret in a key vault (a new version; earlier versions are kept)."
+    },
+    {
+      "name": "Graph GET",
+      "description": "Read any Microsoft Graph endpoint."
+    },
+    {
+      "name": "Graph Request",
+      "description": "Escape hatch: write to any Microsoft Graph endpoint (POST, PATCH, PUT, DELETE)."
+    },
+    {
+      "name": "List Entra Users",
+      "description": "List Microsoft Entra ID (Azure AD) users via Microsoft Graph."
+    },
+    {
+      "name": "List Entra Groups",
+      "description": "List Microsoft Entra ID (Azure AD) groups via Microsoft Graph."
+    },
+    {
+      "name": "List Entra Applications",
+      "description": "List Microsoft Entra ID app registrations via Microsoft Graph."
+    },
+    {
+      "name": "Get Metrics",
+      "description": "Get Azure Monitor metrics for a resource, e.g."
+    },
+    {
+      "name": "List Metric Definitions",
+      "description": "List the metrics available for a resource (names, units, supported aggregations)."
+    },
+    {
+      "name": "List Diagnostic Settings",
+      "description": "List diagnostic settings configured on a resource (where logs and metrics are routed)."
+    },
+    {
+      "name": "Query Log Analytics",
+      "description": "Run a KQL query against a Log Analytics workspace."
+    },
+    {
+      "name": "Azure CLI (Read)",
+      "description": "Run any read-only Azure CLI command: every `az ..."
+    },
+    {
+      "name": "Azure CLI (Run)",
+      "description": "Run any Azure CLI command, including creates, updates, deletes and commands that return credentials: one-to-one with `az`."
+    },
+    {
+      "name": "Azure CLI Help",
+      "description": "Show `az <group> [<command>] --help`: the subgroups, commands, arguments and examples, straight from the installed CLI."
+    },
+    {
+      "name": "Azure Estate",
+      "description": "Interactive subscription overview: resource counts by type and region, resource groups by size, unhealthy resources, Advisor recommendations by category and impact, the Defender…"
+    },
+    {
+      "name": "Virtual Machines",
+      "description": "Interactive virtual machine board: every VM with its power state, size, OS, region and resource group, filterable and sortable, with Start, Deallocate and Restart buttons."
+    },
+    {
+      "name": "Web Apps",
+      "description": "Interactive App Service board: every web app and function app with its state, kind, default host name, HTTPS-only setting, region and resource group, with Start, Stop and Restar…"
+    },
+    {
+      "name": "Azure Costs",
+      "description": "Interactive cost view: total actual cost for the period, a daily trend, cost by service and by resource group, and budgets with their current spend."
+    },
+    {
+      "name": "Resource Explorer",
+      "description": "Interactive resource explorer: every resource in a subscription (or one resource group, or of one type) with type, region, SKU and tags, filterable and sortable."
+    },
+    {
+      "name": "Security Posture",
+      "description": "Interactive security posture: Defender for Cloud secure score with the controls losing the most points, active Defender alerts by severity, Advisor security recommendations, and…"
     }
   ]
 }

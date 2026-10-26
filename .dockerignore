@@ -1,0 +1,9 @@
+node_modules
+dist
+*.mcpb
+.git
+.deployment
+.env
+.env.*
+test
+docs

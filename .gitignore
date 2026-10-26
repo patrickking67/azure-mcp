@@ -1,6 +1,8 @@
-node_modules/
-dist/
 *.mcpb
 .DS_Store
+.deployment/
 .env
 .env.*
+dist/
+infra/main.bicepparam
+node_modules/
