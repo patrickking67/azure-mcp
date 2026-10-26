@@ -29391,6 +29391,11 @@ function useIsolatedCliConfig() {
 function cliConfigDir() {
   return isolatedConfigDir;
 }
+var sandboxDir;
+function cliSandboxDir() {
+  sandboxDir ??= mkdtempSync(join(tmpdir(), "azure-mcp-cwd-"));
+  return sandboxDir;
+}
 function azRun(args, options = {}) {
   return new Promise((resolve2, reject) => {
     const env = { ...process.env, AZURE_CORE_NO_COLOR: "true", AZURE_CORE_SURVEY_MESSAGE: "false", PYTHONIOENCODING: "utf-8" };
@@ -29398,7 +29403,7 @@ function azRun(args, options = {}) {
       env.AZURE_CONFIG_DIR = isolatedConfigDir;
     let child;
     try {
-      child = spawn(AZ.command, [...AZ.prefix, ...args], { stdio: ["ignore", "pipe", "pipe"], env, windowsHide: true });
+      child = spawn(AZ.command, [...AZ.prefix, ...args], { stdio: ["ignore", "pipe", "pipe"], env, windowsHide: true, ...options.cwd ? { cwd: options.cwd } : {} });
     } catch (error62) {
       reject(error62);
       return;
@@ -39174,9 +39179,13 @@ var URL_FLAGS = ["--url", "--uri", "-u"];
 function localPathArgument(args) {
   for (let i = 0; i < args.length; i += 1) {
     const raw = args[i];
-    const value = raw.startsWith("--") && raw.includes("=") ? raw.slice(raw.indexOf("=") + 1) : raw;
+    const value = raw.startsWith("--") ? raw.includes("=") ? raw.slice(raw.indexOf("=") + 1) : raw : raw.startsWith("-") && raw.length > 2 ? raw.slice(2).replace(/^=/, "") : raw;
     if (raw.startsWith("-") && value === raw)
       continue;
+    if (raw.startsWith("-") && raw.length === 2)
+      continue;
+    if (/^file:/i.test(value))
+      return value;
     if (URL_FLAGS.includes(args[i - 1] ?? "") || URL_FLAGS.some((f2) => raw.startsWith(`${f2}=`)))
       continue;
     if (/^[a-z][a-z0-9+.-]*:\/\//i.test(value))
@@ -39411,7 +39420,7 @@ async function execute(tool, input2, check2) {
     full.push("--subscription", input2.subscription_id);
   if (!hasFlag(full, ["--output", "-o"]))
     full.push("--output", "json");
-  const run = await azRun(full, { timeoutMs: (input2.timeout_seconds ?? 120) * 1e3 });
+  const run = await azRun(full, { timeoutMs: (input2.timeout_seconds ?? 120) * 1e3, cwd: cliSandboxDir() });
   let output2 = run.stdout;
   const trimmed = run.stdout.trim();
   if (trimmed && /^[[{"]|^(true|false|null|-?\d)/.test(trimmed)) {

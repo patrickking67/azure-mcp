@@ -13,7 +13,7 @@
 
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
-import { AZ_LABEL, azRun, useIsolatedCliConfig } from "../az.js";
+import { AZ_LABEL, azRun, cliSandboxDir, useIsolatedCliConfig } from "../az.js";
 import { authMode, BASE_AUTH_MODE, CLIENT_ID, MANAGED_IDENTITY_CLIENT_ID, servicePrincipalSecret, TENANT_ID } from "../auth.js";
 import { classify, hasFlag, splitCommand, type Classification } from "../cli-policy.js";
 import { formatResult, type JsonValue } from "../client.js";
@@ -82,7 +82,7 @@ async function execute(tool: string, input: CommandArgs, check: (c: Classificati
   const full = [...argv];
   if (input.subscription_id && !hasFlag(full, ["--subscription"])) full.push("--subscription", input.subscription_id);
   if (!hasFlag(full, ["--output", "-o"])) full.push("--output", "json");
-  const run = await azRun(full, { timeoutMs: (input.timeout_seconds ?? 120) * 1000 });
+  const run = await azRun(full, { timeoutMs: (input.timeout_seconds ?? 120) * 1000, cwd: cliSandboxDir() });
   let output: JsonValue = run.stdout;
   const trimmed = run.stdout.trim();
   if (trimmed && /^[[{"]|^(true|false|null|-?\d)/.test(trimmed)) {

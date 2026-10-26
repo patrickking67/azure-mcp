@@ -67,14 +67,22 @@ export function cliConfigDir(): string | undefined {
   return isolatedConfigDir;
 }
 
+// The CLI tools run in an empty working directory, so a relative path (token.json, dist, '.') or a
+// command that uploads "the current directory" (webapp up, acr build .) reaches nothing on this machine.
+let sandboxDir: string | undefined;
+export function cliSandboxDir(): string {
+  sandboxDir ??= mkdtempSync(join(tmpdir(), "azure-mcp-cwd-"));
+  return sandboxDir;
+}
+
 /** Run `az <args>` with stdin closed (prompts fail fast instead of hanging) and bounded output. */
-export function azRun(args: string[], options: { timeoutMs?: number } = {}): Promise<AzRunResult> {
+export function azRun(args: string[], options: { timeoutMs?: number; cwd?: string } = {}): Promise<AzRunResult> {
   return new Promise((resolve, reject) => {
     const env: NodeJS.ProcessEnv = { ...process.env, AZURE_CORE_NO_COLOR: "true", AZURE_CORE_SURVEY_MESSAGE: "false", PYTHONIOENCODING: "utf-8" };
     if (isolatedConfigDir) env.AZURE_CONFIG_DIR = isolatedConfigDir;
     let child;
     try {
-      child = spawn(AZ.command, [...AZ.prefix, ...args], { stdio: ["ignore", "pipe", "pipe"], env, windowsHide: true });
+      child = spawn(AZ.command, [...AZ.prefix, ...args], { stdio: ["ignore", "pipe", "pipe"], env, windowsHide: true, ...(options.cwd ? { cwd: options.cwd } : {}) });
     } catch (error) {
       reject(error);
       return;

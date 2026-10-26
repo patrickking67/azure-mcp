@@ -119,14 +119,18 @@ const URL_FLAGS = ["--url", "--uri", "-u"];
 
 /**
  * The first argument that names a local path: anything starting with '/', './', '../' or '~' other than
- * an ARM id or the root scope '/', '.' and '..' themselves, and any value containing '.' or '/' that
- * exists on disk (a relative path such as token.json). URLs are not paths.
+ * an ARM id or the root scope '/', '.' and '..' themselves, file: URLs, and any value containing '.' or '/'
+ * that exists on disk. Other URLs are not paths. Relative paths the check cannot see still resolve inside
+ * the empty sandbox directory the CLI runs in (az.ts cliSandboxDir), so they reach nothing.
  */
 export function localPathArgument(args: string[]): string | undefined {
   for (let i = 0; i < args.length; i += 1) {
     const raw = args[i];
-    const value = raw.startsWith("--") && raw.includes("=") ? raw.slice(raw.indexOf("=") + 1) : raw;
+    // --flag=value, and a short flag with its value attached (-s/Users/x, argparse reads both).
+    const value = raw.startsWith("--") ? (raw.includes("=") ? raw.slice(raw.indexOf("=") + 1) : raw) : raw.startsWith("-") && raw.length > 2 ? raw.slice(2).replace(/^=/, "") : raw;
     if (raw.startsWith("-") && value === raw) continue;
+    if (raw.startsWith("-") && raw.length === 2) continue;
+    if (/^file:/i.test(value)) return value;
     // az rest URIs are relative ARM paths, checked by the rest parser instead.
     if (URL_FLAGS.includes(args[i - 1] ?? "") || URL_FLAGS.some((f) => raw.startsWith(`${f}=`))) continue;
     if (/^[a-z][a-z0-9+.-]*:\/\//i.test(value)) continue;

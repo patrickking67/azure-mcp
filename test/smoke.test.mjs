@@ -53,7 +53,10 @@ test("write mode opens writes but not the destructive tier", async () => {
   const c = await connect({ AZURE_MODE: "write" });
   const create = await call(c, "Az_CLI_Run", { args: ["group", "create", "-n", "rg", "-l", "eastus"], confirm: true });
   assert.equal(create.isError, undefined, text(create));
-  assert.deepEqual(JSON.parse(text(create)).output.argv, ["group", "create", "-n", "rg", "-l", "eastus", "--output", "json"]);
+  const created = JSON.parse(text(create)).output;
+  assert.deepEqual(created.argv, ["group", "create", "-n", "rg", "-l", "eastus", "--output", "json"]);
+  // The CLI runs in an empty sandbox directory, not the server's working directory.
+  assert.match(created.cwd, /azure-mcp-cwd-/);
   const del = await call(c, "Az_CLI_Run", { command: "az group delete -n rg --yes", confirm: true });
   assert.equal(del.isError, true);
   assert.match(text(del), /AZURE_ALLOW_DESTRUCTIVE=true/);
