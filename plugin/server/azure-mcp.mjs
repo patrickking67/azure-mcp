@@ -39042,12 +39042,12 @@ function registerAppViews(server) {
 
 // dist/instructions.js
 var SERVER_INSTRUCTIONS = `Microsoft Azure and Entra ID. Tools come in four kinds, and annotations say which:
-- read: List_*, Get_*, Query_*, Resource_*, ARM_GET, Graph_GET, Az_CLI, Az_CLI_Help, Status_*. Safe to call freely and in parallel.
-- write: Start_*, Create_*, Tag_Resource, Set_Key_Vault_Secret. They stay listed in read mode and refuse until AZURE_MODE=write; every call needs confirm: true.
+- read: List_*, Get_* (except Get_Key_Vault_Secret), Query_*, Resource_*, ARM_GET, Graph_GET, Az_CLI, Az_CLI_Help, Status_*. Safe to call freely and in parallel.
+- write: Start_*, Create_*, Tag_Resource, Set_Key_Vault_Secret, and Get_Key_Vault_Secret (a credential read). They stay listed in read mode and refuse until AZURE_MODE=write; every call needs confirm: true.
 - destructive: Stop_*, Restart_*, Resize_VM, Delete_*, and DELETE through ARM_Request / Graph_Request. They also need AZURE_ALLOW_DESTRUCTIVE=true.
 - interactive: View_* render an MCP Apps view (estate overview, virtual machines, web apps, costs, resource explorer, security). Buttons in a view call the same gated tools.
 
-The Azure CLI is available one-to-one: Az_CLI runs any read-only az command, Az_CLI_Run runs anything else (classified per command: writes need write mode, deletes/stops/restarts need the destructive gate), and Az_CLI_Help shows a command's arguments. Prefer a dedicated tool when one exists; reach for Az_CLI for everything else rather than guessing ARM paths. Pass args as an array of words after "az". Commands that print tokens, change the CLI sign-in or config, or open interactive sessions are refused. Reads that return keys or connection strings count as writes.
+The Azure CLI is available one-to-one: Az_CLI runs any read-only az command, Az_CLI_Run runs anything else (classified per command: writes need write mode, deletes/stops/restarts need the destructive gate), and Az_CLI_Help shows a command's arguments. Prefer a dedicated tool when one exists; reach for Az_CLI for everything else rather than guessing ARM paths. Pass args as an array of words after "az". Commands that print tokens, change the CLI sign-in or config, open interactive sessions, or read or write local files are refused. Reads that return keys or connection strings count as writes.
 
 Subscriptions: tools take an optional subscription_id; otherwise the configured default or the az default is used. List_Subscriptions shows what the identity can reach. Status_Server explains the configuration and auth mode without calling Azure; Status_Gate explains a write refusal; Test_Connection proves the identity works.`;
 
@@ -39129,26 +39129,53 @@ var DESTRUCTIVE_VERBS = /* @__PURE__ */ new Set([
   "upgrade",
   "evict",
   "drain",
-  "suspend"
+  "suspend",
+  // Restart or reshape what runs: resize and update-instances restart VMs, generalize makes a VM unusable, scale can go to zero,
+  // invoke runs arbitrary code on a machine or cluster.
+  "resize",
+  "generalize",
+  "update-instances",
+  "scale",
+  "invoke"
 ]);
-var DESTRUCTIVE_PREFIXES = ["delete-", "remove-", "stop-", "purge-", "deallocate-", "restart-", "reset-", "rotate-", "regenerate-", "revoke-", "force-"];
-var SENSITIVE_VERBS = /* @__PURE__ */ new Set([
-  "list-keys",
-  "keys",
-  "list-connection-strings",
-  "show-connection-string",
-  "list-credentials",
-  "get-credentials",
-  "list-secrets",
-  "list-publishing-profiles",
-  "list-publishing-credentials",
-  "generate-sas",
-  "list-auth-keys",
-  "get-auth-keys",
-  "list-access-keys"
+var DESTRUCTIVE_PREFIXES = ["delete-", "remove-", "stop-", "purge-", "deallocate-", "restart-", "reset-", "rotate-", "regenerate-", "revoke-", "force-", "manual-failover"];
+var DESTRUCTIVE_GROUPS = /* @__PURE__ */ new Set(["run-command"]);
+var SENSITIVE_TOKEN = /(^|-)(keys?|secrets?|credentials?|connection-strings?|tokens?|sas|passwords?|appsettings|kubeconfig|publish(ing)?-profiles?)($|-)/;
+var SENSITIVE_FLAGS = ["--show-values", "--show-secrets", "--show-keys"];
+var NOT_SENSITIVE = /^keyvault (secret|key|certificate) (list|list-versions|list-deleted)$/;
+var LOCAL_PATH_FLAGS = [
+  "--file",
+  "-f",
+  "--file-path",
+  "--template-file",
+  "--output-file",
+  "--dest",
+  "--destination",
+  "--local-path",
+  "--src",
+  "--src-path",
+  "--custom-data",
+  "--download-path",
+  "--target-path",
+  "--key-file",
+  "--cert-file",
+  "--pem-file"
+];
+var REST_FLAGS = /* @__PURE__ */ new Map([
+  ["--method", "method"],
+  ["-m", "method"],
+  ["--url", "url"],
+  ["--uri", "url"],
+  ["-u", "url"],
+  ["--body", "body"],
+  ["-b", "body"],
+  ["--headers", "headers"],
+  ["--url-parameters", "url-parameters"],
+  ["--query", "query"],
+  ["--output", "output"],
+  ["-o", "output"]
 ]);
-var SENSITIVE_GROUPS = /* @__PURE__ */ new Set(["keys", "credential", "credentials", "connection-string", "appsettings"]);
-var REST_HOSTS = [/\.azure\.com$/, /\.azure\.net$/, /^graph\.microsoft\.com$/, /^api\.loganalytics\.io$/, /\.windows\.net$/, /^management\.core\.windows\.net$/];
+var REST_HOSTS = [/^management\.azure\.com$/, /^graph\.microsoft\.com$/, /^api\.loganalytics\.io$/, /^[a-z0-9-]{3,24}\.vault\.azure\.net$/];
 function commandPath(args) {
   const path = [];
   for (const arg of args) {
@@ -39157,18 +39184,6 @@ function commandPath(args) {
     path.push(arg);
   }
   return path;
-}
-function flagValue(args, names) {
-  for (let i = 0; i < args.length; i += 1) {
-    const arg = args[i];
-    for (const name of names) {
-      if (arg === name)
-        return args[i + 1];
-      if (arg.startsWith(`${name}=`))
-        return arg.slice(name.length + 1);
-    }
-  }
-  return void 0;
 }
 function hasFlag(args, names) {
   return args.some((arg) => names.some((name) => arg === name || arg.startsWith(`${name}=`)));
@@ -39180,10 +39195,31 @@ function verbTier(verb) {
     return "destructive";
   return "write";
 }
+function parseRest(args) {
+  const seen = {};
+  for (let i = 1; i < args.length; i += 1) {
+    const arg = args[i];
+    if (!arg.startsWith("-"))
+      return `unexpected argument '${arg}'; pass every value right after its flag`;
+    const eq = arg.indexOf("=");
+    const name = eq > 0 ? arg.slice(0, eq) : arg;
+    const key = REST_FLAGS.get(name);
+    if (!key)
+      return `az rest flag '${name}' is not allowed here (use --method, --url, --body, --headers, --url-parameters, --query, --output)`;
+    if (key in seen)
+      return `az rest flag ${name} is given twice`;
+    const value = eq > 0 ? arg.slice(eq + 1) : args[++i];
+    if (value === void 0)
+      return `az rest flag ${name} needs a value`;
+    seen[key] = value;
+  }
+  return seen;
+}
 function classify(args) {
   const path = commandPath(args);
   const verb = path.at(-1) ?? "";
   const joined = path.join(" ");
+  const flags = args.slice(path.length);
   const result = (tier2, sensitive2 = false, blocked) => ({ path, verb, tier: tier2, sensitive: sensitive2, ...blocked ? { blocked } : {} });
   if (path.length === 0)
     return result("read", false, `no command given; pass the words after 'az', e.g. ["vm", "list"]`);
@@ -39194,33 +39230,47 @@ function classify(args) {
   for (const arg of args) {
     if (arg.startsWith("@") || /=@/.test(arg))
       return result("write", false, `argument '${arg}' would make the CLI read a local file; pass the content inline instead`);
+    if (arg.startsWith("~"))
+      return result("write", false, `argument '${arg}' is a path in the home directory; local files are not reachable from these tools`);
   }
-  if (hasFlag(args, ["--debug"]))
+  if (hasFlag(flags, ["--debug"]))
     return result("write", false, "--debug can print request details; use --verbose");
+  const pathFlag = LOCAL_PATH_FLAGS.find((name) => hasFlag(flags, [name]) || !name.startsWith("--") && flags.some((a) => a.startsWith(name) && !a.startsWith("--")));
+  if (pathFlag)
+    return result("write", false, `${pathFlag} reads or writes a file on this machine; pass content inline, or use a URL or template spec instead`);
   if (path[0] === "rest" && path.length === 1) {
-    const url2 = flagValue(args, ["--url", "--uri", "-u"]);
+    const rest = parseRest(args);
+    if (typeof rest === "string")
+      return result("read", false, rest);
+    const url2 = rest.url;
     if (!url2)
       return result("read", false, "az rest needs --url");
-    if (!url2.startsWith("/")) {
-      let host;
+    if (!url2.startsWith("/") || url2.startsWith("//")) {
+      let parsed;
       try {
-        host = new URL(url2).hostname;
+        parsed = new URL(url2);
       } catch {
         return result("read", false, `az rest --url '${url2}' is not a URL`);
       }
-      if (!url2.startsWith("https://") || !REST_HOSTS.some((re) => re.test(host)))
-        return result("read", false, `az rest may only call Azure endpoints over https, not ${host}`);
+      if (parsed.protocol !== "https:" || parsed.username || parsed.password || parsed.port || !REST_HOSTS.some((re) => re.test(parsed.hostname))) {
+        return result("read", false, `az rest may only call management.azure.com, graph.microsoft.com, api.loganalytics.io or a vault.azure.net vault over https, not ${parsed.host || url2}`);
+      }
     }
-    const method = (flagValue(args, ["--method", "-m"]) ?? "get").toLowerCase();
-    let tier2 = ["get", "head", "options"].includes(method) ? "read" : method === "delete" ? "destructive" : "write";
-    if (tier2 === "read" && hasFlag(args, ["--output-file"]))
-      tier2 = "write";
-    return result(tier2);
+    const method = (rest.method ?? "get").toLowerCase();
+    if (!["get", "head", "options", "post", "put", "patch", "delete"].includes(method))
+      return result("read", false, `az rest method '${method}' is not recognised`);
+    return result(["get", "head", "options"].includes(method) ? "read" : method === "delete" ? "destructive" : "write");
   }
   let tier = verbTier(verb);
-  if (verb === "download" || hasFlag(args, ["--output-file", "--file-path"]) && tier === "read")
+  if (path.slice(0, -1).some((token) => DESTRUCTIVE_GROUPS.has(token)))
+    tier = "destructive";
+  const mode = args.findIndex((a) => a === "--mode" || a.startsWith("--mode="));
+  const modeValue = mode < 0 ? "" : args[mode].includes("=") ? args[mode].split("=")[1] : args[mode + 1] ?? "";
+  if (path[0] === "deployment" && modeValue.toLowerCase() === "complete")
+    tier = "destructive";
+  if (verb === "download" && tier === "read")
     tier = "write";
-  const sensitive = SENSITIVE_VERBS.has(verb) || path.slice(0, -1).some((token) => SENSITIVE_GROUPS.has(token)) && tier === "read" || joined.startsWith("keyvault secret") && ["show", "download", "show-deleted"].includes(verb);
+  const sensitive = path.some((token) => SENSITIVE_TOKEN.test(token)) && !NOT_SENSITIVE.test(joined) || hasFlag(flags, SENSITIVE_FLAGS);
   if (sensitive && tier === "read")
     tier = "write";
   return result(tier, sensitive);
@@ -39952,8 +40002,8 @@ function registerKeyVaultTools(server) {
   defineTool(server, {
     name: "Get_Key_Vault_Secret",
     title: "Get Key Vault Secret",
-    description: "Get a secret's current value from a key vault. Returns the secret value - use only when the value itself is needed.",
-    tier: "read",
+    description: "Get a secret's current value from a key vault. Returns the secret value - use only when the value itself is needed. A credential read, so it is gated like a write (write mode and confirm), the same as `az keyvault secret show`.",
+    tier: "write",
     cli: "az keyvault secret show --vault-name <vault> -n <secret>",
     ref: { method: "GET", path: "https://{vault}.vault.azure.net/secrets/{name}", apiVersion: KEY_VAULT_API_VERSION },
     inputSchema: { vault_name: external_exports.string().describe("Key vault name."), secret_name: external_exports.string().describe("Secret name.") },

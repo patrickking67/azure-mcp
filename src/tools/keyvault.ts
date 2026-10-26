@@ -35,8 +35,9 @@ export function registerKeyVaultTools(server: McpServer): void {
   defineTool(server, {
     name: "Get_Key_Vault_Secret",
     title: "Get Key Vault Secret",
-    description: "Get a secret's current value from a key vault. Returns the secret value - use only when the value itself is needed.",
-    tier: "read",
+    description:
+      "Get a secret's current value from a key vault. Returns the secret value - use only when the value itself is needed. A credential read, so it is gated like a write (write mode and confirm), the same as `az keyvault secret show`.",
+    tier: "write",
     cli: "az keyvault secret show --vault-name <vault> -n <secret>",
     ref: { method: "GET", path: "https://{vault}.vault.azure.net/secrets/{name}", apiVersion: KEY_VAULT_API_VERSION },
     inputSchema: { vault_name: z.string().describe("Key vault name."), secret_name: z.string().describe("Secret name.") },

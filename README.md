@@ -8,18 +8,18 @@ Every dedicated tool carries its Azure CLI equivalent in its description and in 
 
 | Kind | Tools |
 | --- | --- |
-| Read (85) | `List_*`, `Get_*`, `Query_*`, `Resource_Graph_Query`, `Resource_Health`, `ARM_GET`, `Graph_GET`, `Az_CLI`, `Az_CLI_Help`, `Status_Server`, `Status_Gate`, `Test_Connection` |
-| Write (6) | `Start_VM`, `Start_Web_App`, `Start_AKS_Cluster`, `Tag_Resource`, `Create_Resource_Group`, `Set_Key_Vault_Secret` |
+| Read (84) | `List_*`, `Get_*`, `Query_*`, `Resource_Graph_Query`, `Resource_Health`, `ARM_GET`, `Graph_GET`, `Az_CLI`, `Az_CLI_Help`, `Status_Server`, `Status_Gate`, `Test_Connection` |
+| Write (7) | `Start_VM`, `Start_Web_App`, `Start_AKS_Cluster`, `Tag_Resource`, `Create_Resource_Group`, `Set_Key_Vault_Secret`, `Get_Key_Vault_Secret` (credential read) |
 | Destructive (11) | `Stop_VM`, `Restart_VM`, `Resize_VM`, `Stop_Web_App`, `Restart_Web_App`, `Stop_AKS_Cluster`, `Delete_Resource_Group`, `Delete_Resource`, `ARM_Request`, `Graph_Request`, `Az_CLI_Run` |
 | Interactive (6, read) | `View_Estate`, `View_Virtual_Machines`, `View_Web_Apps`, `View_Costs`, `View_Resources`, `View_Security` |
 
 ### The Azure CLI, one-to-one
 
 - **`Az_CLI`** runs any read-only `az` command (`list`, `show`, `get-*`, `check-*`, `az rest --method get`). No gate.
-- **`Az_CLI_Run`** runs anything else. Each command is classified before it runs ([src/cli-policy.ts](src/cli-policy.ts)): creates and updates need write mode; `delete`, `purge`, `stop`, `deallocate`, `restart`, `regenerate`, `revoke` and other disruptive verbs also need the destructive gate. Reads that return credentials (`keys list`, `show-connection-string`, `get-credentials`, `appsettings list`, `keyvault secret show`) count as writes.
+- **`Az_CLI_Run`** runs anything else. Each command is classified before it runs ([src/cli-policy.ts](src/cli-policy.ts)): creates and updates need write mode; `delete`, `purge`, `stop`, `deallocate`, `restart`, `regenerate`, `revoke` and other disruptive verbs also need the destructive gate. Reads that return credentials (any key, secret, credential, connection string, SAS, password, app settings or publishing profile command, or `--show-values`) count as writes. Complete-mode deployments, `resize`, `generalize`, `scale`, `update-instances` and anything that runs code on a machine (`run-command`, `command invoke`) need the destructive gate.
 - **`Az_CLI_Help`** returns `az <group> [<command>] --help` from the installed CLI.
 
-Always refused: `login`, `account set`, `account get-access-token`, `config`, `extension add`, `upgrade`, interactive sessions (`ssh`, `exec`, `log tail`), `--debug`, any `@file` argument (the CLI would read a local file), and `az rest` to non-Azure hosts. Arguments are passed as an argv array; nothing goes through a shell.
+Always refused: `login`, `account set`, `account get-access-token`, `config`, `extension add`, `upgrade`, interactive sessions (`ssh`, `exec`, `log tail`), `--debug`, local files (`@file` arguments, `~` paths, `--file`, `--template-file`, `--output-file` and similar flags), and `az rest` beyond a strict flag set and the exact hosts management.azure.com, graph.microsoft.com, api.loganalytics.io and `*.vault.azure.net`. Arguments are passed as an argv array; nothing goes through a shell.
 
 ### Interactive views (MCP Apps)
 

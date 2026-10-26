@@ -17,8 +17,10 @@
 //                interactive session, or stream forever. They would act outside this server's
 //                boundary, or hang it.
 //
-// Independent of tier, an argument starting with '@' is refused: the CLI reads '@path' as "the
-// contents of this local file", which would let a prompt-injected command upload a local file.
+// Independent of tier, local files are out of reach: an argument starting with '@' (the CLI reads
+// '@path' as "the contents of this file"), a '~' path, and flags that take a local path (--file,
+// --template-file, --output-file, ...) are refused, so a prompt-injected command can neither upload a
+// local file nor overwrite one. az rest is parsed strictly and may only reach Azure's own hosts.
 
 import type { Tier } from "./gate.js";
 
@@ -78,17 +80,36 @@ const DESTRUCTIVE_VERBS = new Set([
   "delete", "purge", "remove", "stop", "deallocate", "restart", "reboot", "reset", "revoke", "regenerate", "regenerate-key",
   "rotate", "reimage", "redeploy", "power-off", "failover", "detach", "cancel", "abort", "clear", "flush", "rollback", "swap",
   "uninstall", "kill", "terminate", "retire", "disconnect", "disable", "unlink", "wipe", "upgrade", "evict", "drain", "suspend",
+  // Restart or reshape what runs: resize and update-instances restart VMs, generalize makes a VM unusable, scale can go to zero,
+  // invoke runs arbitrary code on a machine or cluster.
+  "resize", "generalize", "update-instances", "scale", "invoke",
 ]);
-const DESTRUCTIVE_PREFIXES = ["delete-", "remove-", "stop-", "purge-", "deallocate-", "restart-", "reset-", "rotate-", "regenerate-", "revoke-", "force-"];
+const DESTRUCTIVE_PREFIXES = ["delete-", "remove-", "stop-", "purge-", "deallocate-", "restart-", "reset-", "rotate-", "regenerate-", "revoke-", "force-", "manual-failover"];
+// Command groups whose every command runs code on a machine.
+const DESTRUCTIVE_GROUPS = new Set(["run-command"]);
 
-const SENSITIVE_VERBS = new Set([
-  "list-keys", "keys", "list-connection-strings", "show-connection-string", "list-credentials", "get-credentials", "list-secrets",
-  "list-publishing-profiles", "list-publishing-credentials", "generate-sas", "list-auth-keys", "get-auth-keys", "list-access-keys",
+// A read whose output is a credential when any path token matches this: account keys, shared keys, admin keys,
+// secrets, credentials, connection strings, SAS tokens, passwords, app settings (which usually hold secrets).
+const SENSITIVE_TOKEN = /(^|-)(keys?|secrets?|credentials?|connection-strings?|tokens?|sas|passwords?|appsettings|kubeconfig|publish(ing)?-profiles?)($|-)/;
+const SENSITIVE_FLAGS = ["--show-values", "--show-secrets", "--show-keys"];
+// Key Vault listings return names and metadata, never values, so they stay plain reads.
+const NOT_SENSITIVE = /^keyvault (secret|key|certificate) (list|list-versions|list-deleted)$/;
+
+// Flags whose value is a path on this machine: a source the CLI reads and may upload, or a destination it writes.
+// Refused outright so a prompt-injected command cannot ship ~/.azure or ~/.ssh to a storage account it names,
+// or overwrite a local file. Content goes inline instead.
+const LOCAL_PATH_FLAGS = [
+  "--file", "-f", "--file-path", "--template-file", "--output-file", "--dest", "--destination", "--local-path", "--src",
+  "--src-path", "--custom-data", "--download-path", "--target-path", "--key-file", "--cert-file", "--pem-file",
+];
+
+// az rest: the only flags accepted, each at most once, so what is classified is exactly what argparse will run.
+const REST_FLAGS = new Map<string, string>([
+  ["--method", "method"], ["-m", "method"], ["--url", "url"], ["--uri", "url"], ["-u", "url"], ["--body", "body"], ["-b", "body"],
+  ["--headers", "headers"], ["--url-parameters", "url-parameters"], ["--query", "query"], ["--output", "output"], ["-o", "output"],
 ]);
-const SENSITIVE_GROUPS = new Set(["keys", "credential", "credentials", "connection-string", "appsettings"]);
-
-// az rest may only target Azure's own endpoints: it attaches a token for these, and a body sent anywhere else is a leak.
-const REST_HOSTS = [/\.azure\.com$/, /\.azure\.net$/, /^graph\.microsoft\.com$/, /^api\.loganalytics\.io$/, /\.windows\.net$/, /^management\.core\.windows\.net$/];
+// Exact hosts only. A suffix such as .azure.com would include DNS labels customers control (cloudapp.azure.com).
+const REST_HOSTS = [/^management\.azure\.com$/, /^graph\.microsoft\.com$/, /^api\.loganalytics\.io$/, /^[a-z0-9-]{3,24}\.vault\.azure\.net$/];
 
 export function commandPath(args: string[]): string[] {
   const path: string[] = [];
@@ -97,17 +118,6 @@ export function commandPath(args: string[]): string[] {
     path.push(arg);
   }
   return path;
-}
-
-function flagValue(args: string[], names: string[]): string | undefined {
-  for (let i = 0; i < args.length; i += 1) {
-    const arg = args[i];
-    for (const name of names) {
-      if (arg === name) return args[i + 1];
-      if (arg.startsWith(`${name}=`)) return arg.slice(name.length + 1);
-    }
-  }
-  return undefined;
 }
 
 export function hasFlag(args: string[], names: string[]): boolean {
@@ -120,10 +130,29 @@ function verbTier(verb: string): Tier {
   return "write";
 }
 
+/** Parse `az rest` strictly: known flags, each once, values separate or after '='. Returns a refusal string on anything else. */
+function parseRest(args: string[]): Record<string, string> | string {
+  const seen: Record<string, string> = {};
+  for (let i = 1; i < args.length; i += 1) {
+    const arg = args[i];
+    if (!arg.startsWith("-")) return `unexpected argument '${arg}'; pass every value right after its flag`;
+    const eq = arg.indexOf("=");
+    const name = eq > 0 ? arg.slice(0, eq) : arg;
+    const key = REST_FLAGS.get(name);
+    if (!key) return `az rest flag '${name}' is not allowed here (use --method, --url, --body, --headers, --url-parameters, --query, --output)`;
+    if (key in seen) return `az rest flag ${name} is given twice`;
+    const value = eq > 0 ? arg.slice(eq + 1) : args[++i];
+    if (value === undefined) return `az rest flag ${name} needs a value`;
+    seen[key] = value;
+  }
+  return seen;
+}
+
 export function classify(args: string[]): Classification {
   const path = commandPath(args);
   const verb = path.at(-1) ?? "";
   const joined = path.join(" ");
+  const flags = args.slice(path.length);
   const result = (tier: Tier, sensitive = false, blocked?: string): Classification => ({ path, verb, tier, sensitive, ...(blocked ? { blocked } : {}) });
 
   if (path.length === 0) return result("read", false, "no command given; pass the words after 'az', e.g. [\"vm\", \"list\"]");
@@ -132,33 +161,42 @@ export function classify(args: string[]): Classification {
   }
   for (const arg of args) {
     if (arg.startsWith("@") || /=@/.test(arg)) return result("write", false, `argument '${arg}' would make the CLI read a local file; pass the content inline instead`);
+    if (arg.startsWith("~")) return result("write", false, `argument '${arg}' is a path in the home directory; local files are not reachable from these tools`);
   }
-  if (hasFlag(args, ["--debug"])) return result("write", false, "--debug can print request details; use --verbose");
+  if (hasFlag(flags, ["--debug"])) return result("write", false, "--debug can print request details; use --verbose");
+  // argparse also accepts a short flag with its value attached (-fmain.bicep).
+  const pathFlag = LOCAL_PATH_FLAGS.find((name) => hasFlag(flags, [name]) || (!name.startsWith("--") && flags.some((a) => a.startsWith(name) && !a.startsWith("--"))));
+  if (pathFlag) return result("write", false, `${pathFlag} reads or writes a file on this machine; pass content inline, or use a URL or template spec instead`);
 
   if (path[0] === "rest" && path.length === 1) {
-    const url = flagValue(args, ["--url", "--uri", "-u"]);
+    const rest = parseRest(args);
+    if (typeof rest === "string") return result("read", false, rest);
+    const url = rest.url;
     if (!url) return result("read", false, "az rest needs --url");
-    if (!url.startsWith("/")) {
-      let host: string;
+    if (!url.startsWith("/") || url.startsWith("//")) {
+      let parsed: URL;
       try {
-        host = new URL(url).hostname;
+        parsed = new URL(url);
       } catch {
         return result("read", false, `az rest --url '${url}' is not a URL`);
       }
-      if (!url.startsWith("https://") || !REST_HOSTS.some((re) => re.test(host))) return result("read", false, `az rest may only call Azure endpoints over https, not ${host}`);
+      if (parsed.protocol !== "https:" || parsed.username || parsed.password || parsed.port || !REST_HOSTS.some((re) => re.test(parsed.hostname))) {
+        return result("read", false, `az rest may only call management.azure.com, graph.microsoft.com, api.loganalytics.io or a vault.azure.net vault over https, not ${parsed.host || url}`);
+      }
     }
-    const method = (flagValue(args, ["--method", "-m"]) ?? "get").toLowerCase();
-    let tier: Tier = ["get", "head", "options"].includes(method) ? "read" : method === "delete" ? "destructive" : "write";
-    if (tier === "read" && hasFlag(args, ["--output-file"])) tier = "write";
-    return result(tier);
+    const method = (rest.method ?? "get").toLowerCase();
+    if (!["get", "head", "options", "post", "put", "patch", "delete"].includes(method)) return result("read", false, `az rest method '${method}' is not recognised`);
+    return result(["get", "head", "options"].includes(method) ? "read" : method === "delete" ? "destructive" : "write");
   }
 
   let tier = verbTier(verb);
-  if (verb === "download" || hasFlag(args, ["--output-file", "--file-path"]) && tier === "read") tier = "write";
-  const sensitive =
-    SENSITIVE_VERBS.has(verb) ||
-    (path.slice(0, -1).some((token) => SENSITIVE_GROUPS.has(token)) && tier === "read") ||
-    (joined.startsWith("keyvault secret") && ["show", "download", "show-deleted"].includes(verb));
+  if (path.slice(0, -1).some((token) => DESTRUCTIVE_GROUPS.has(token))) tier = "destructive";
+  // Complete mode deletes every resource in the group that the template does not mention.
+  const mode = args.findIndex((a) => a === "--mode" || a.startsWith("--mode="));
+  const modeValue = mode < 0 ? "" : args[mode].includes("=") ? args[mode].split("=")[1] : (args[mode + 1] ?? "");
+  if (path[0] === "deployment" && modeValue.toLowerCase() === "complete") tier = "destructive";
+  if (verb === "download" && tier === "read") tier = "write";
+  const sensitive = (path.some((token) => SENSITIVE_TOKEN.test(token)) && !NOT_SENSITIVE.test(joined)) || hasFlag(flags, SENSITIVE_FLAGS);
   if (sensitive && tier === "read") tier = "write";
   return result(tier, sensitive);
 }

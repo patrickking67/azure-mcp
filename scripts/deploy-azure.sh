@@ -42,7 +42,8 @@ echo "── checks ──"
 npm run check
 npm test
 npm run manifest:check
-az bicep build --file "$TEMPLATE" --stdout >/dev/null
+# bicep build is local and takes no --subscription, so it bypasses the wrapper.
+command az bicep build --file "$TEMPLATE" --stdout >/dev/null
 echo "Checks passed."
 
 printf '\n── target ──\nsubscription %s\ngroup        %s\nimage        azure-mcp:%s\n' "$SUB" "$RG" "$IMAGE_TAG"
