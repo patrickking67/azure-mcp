@@ -24,6 +24,7 @@
 
 import { existsSync } from "node:fs";
 import { resolve } from "node:path";
+import { cliSandboxDir } from "./az.js";
 import type { Tier } from "./gate.js";
 
 export type Classification = {
@@ -136,9 +137,12 @@ export function localPathArgument(args: string[]): string | undefined {
     if (/^[a-z][a-z0-9+.-]*:\/\//i.test(value)) continue;
     if (value === "/" || ARM_ID.test(value)) continue;
     if (value === "." || value === ".." || /^(\/|\.\.?\/|~|\.\.?\\)/.test(value) || /^[A-Za-z]:[\\/]/.test(value)) return value;
+    // A '..' segment anywhere climbs out of the sandbox directory once the path is normalised (x/../../Users/me).
+    if (/(^|[\\/])\.\.([\\/]|$)/.test(value)) return value;
     if (/[./\\]/.test(value) && value.length < 1024) {
       try {
-        if (existsSync(resolve(value))) return value;
+        // Resolved where the CLI will run, so the check sees what the CLI would open.
+        if (existsSync(resolve(cliSandboxDir(), value))) return value;
       } catch {
         // An unreadable path is not reachable either.
       }
