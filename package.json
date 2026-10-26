@@ -13,13 +13,15 @@
     "check": "tsc -p tsconfig.json --noEmit",
     "start": "node dist/index.js",
     "start:remote": "node dist/remote.js",
-    "test": "npm run build && node --test test/*.test.mjs",
+    "test": "npm run build && node scripts/build-plugin.mjs --check && node --test test/*.test.mjs",
     "manifest": "node scripts/sync-manifest.mjs",
     "manifest:check": "node scripts/sync-manifest.mjs --check",
     "apps:runtime": "node scripts/generate-app-runtime.mjs",
     "mcpb:validate": "npx --yes @anthropic-ai/mcpb@^2 validate manifest.json",
     "mcpb:pack": "npm run build && npm run manifest && npm run mcpb:validate && node scripts/pack-mcpb.mjs azure.mcpb assets",
-    "deploy:plan": "bash scripts/deploy-azure.sh --dry-run"
+    "deploy:plan": "bash scripts/deploy-azure.sh --dry-run",
+    "plugin:build": "npm run build && node scripts/build-plugin.mjs",
+    "plugin:check": "node scripts/build-plugin.mjs --check"
   },
   "dependencies": {
     "@modelcontextprotocol/ext-apps": "^1.7.5",
@@ -30,6 +32,7 @@
   "devDependencies": {
     "@anthropic-ai/mcpb": "^2.1.2",
     "@types/node": "^24.19.2",
+    "esbuild": "^0.28.2",
     "typescript": "^6.0.3"
   },
   "engines": {

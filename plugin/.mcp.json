@@ -1,0 +1,15 @@
+{
+  "mcpServers": {
+    "azure": {
+      "type": "stdio",
+      "command": "node",
+      "args": ["${CLAUDE_PLUGIN_ROOT}/server/azure-mcp.mjs"],
+      "env": {
+        "AZURE_MODE": "${AZURE_MODE:-read}",
+        "AZURE_ALLOW_DESTRUCTIVE": "${AZURE_ALLOW_DESTRUCTIVE:-false}",
+        "AZURE_SUBSCRIPTION_ID": "${AZURE_SUBSCRIPTION_ID:-}",
+        "AZ_PATH": "${AZ_PATH:-}"
+      }
+    }
+  }
+}

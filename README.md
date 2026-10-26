@@ -64,20 +64,42 @@ npm run mcpb:pack
 
 Open `azure.mcpb` (Settings > Extensions > Install extension). All settings are optional; with none set it uses your `az login` in read mode.
 
-### Claude Code
+### Claude Code (plugin)
+
+```bash
+/plugin marketplace add patrickking67/azure-mcp
+/plugin install azure@azure-mcp
+```
+
+The plugin in [plugin/](plugin) runs a self-contained build of the server (`plugin/server/azure-mcp.mjs`, no `npm install`). It reads `AZURE_MODE`, `AZURE_ALLOW_DESTRUCTIVE`, `AZURE_SUBSCRIPTION_ID` and `AZ_PATH` from your shell environment; unset, it is read-only.
+
+Or without the plugin:
 
 ```bash
 claude mcp add azure --scope user --env AZURE_MODE=read -- node /Users/patrickking/GitHub/azure-mcp/dist/index.js
 ```
 
-### Codex (`~/.codex/config.toml`)
+### Codex and ChatGPT desktop (plugin)
+
+The repository is also a Codex marketplace (`.agents/plugins/marketplace.json`, plugin manifest `plugin/plugin.json`, server in `plugin/mcp.json`). It works in the Codex CLI and in Codex inside the ChatGPT desktop app:
+
+```bash
+codex plugin marketplace add patrickking67/azure-mcp
+codex plugin add azure@azure-mcp
+```
+
+The plugin starts read-only. To enable writes in Codex, configure the server directly instead (`~/.codex/config.toml`):
 
 ```toml
 [mcp_servers.azure]
 command = "node"
 args = ["/Users/patrickking/GitHub/azure-mcp/dist/index.js"]
-env = { AZURE_MODE = "read" }
+env = { AZURE_MODE = "write", AZURE_ALLOW_DESTRUCTIVE = "false" }
 ```
+
+### ChatGPT (web and mobile)
+
+ChatGPT on the web cannot launch a local server. Use the remote lane below and add `<publicUrl>/mcp` as a connector. The interactive views carry the `openai/outputTemplate` metadata ChatGPT apps use.
 
 ## Remote (Azure Container Apps + Entra ID)
 
@@ -90,6 +112,7 @@ npm ci
 npm test               # build + unit + stdio smoke (fake az) + remote transport
 npm run manifest       # rewrite manifest.json tools from the running server
 npm run apps:runtime   # re-inline the ext-apps browser runtime after upgrading it
+npm run plugin:build   # rebuild plugin/server/azure-mcp.mjs after changing src/
 npx @modelcontextprotocol/inspector node dist/index.js
 ```
 
