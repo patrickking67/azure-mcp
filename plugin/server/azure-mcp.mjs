@@ -4586,7 +4586,7 @@ function isRef(value) {
 function cloneIssues(issues) {
   return issues.map((iss) => iss.path ? { ...iss, path: iss.path.slice() } : { ...iss });
 }
-function isRecursive(inst, stack, resolve) {
+function isRecursive(inst, stack, resolve2) {
   const cached3 = recursive.get(inst);
   if (cached3 !== void 0)
     return cached3 ? PROVEN : NONE;
@@ -4596,7 +4596,7 @@ function isRecursive(inst, stack, resolve) {
   let result = NONE;
   const check2 = (child) => {
     if (result !== PROVEN && child?._zod) {
-      const answer = isRecursive(child, stack, resolve);
+      const answer = isRecursive(child, stack, resolve2);
       if (answer > result)
         result = answer;
     }
@@ -4607,7 +4607,7 @@ function isRecursive(inst, stack, resolve) {
       const desc = Object.getOwnPropertyDescriptor(sh, key);
       if (spread && !desc.enumerable)
         continue;
-      const child = desc.get ? ASSUMED : desc.value?._zod ? isRecursive(desc.value, stack, resolve) : NONE;
+      const child = desc.get ? ASSUMED : desc.value?._zod ? isRecursive(desc.value, stack, resolve2) : NONE;
       if (child > answer)
         answer = child;
     }
@@ -4671,7 +4671,7 @@ function isRecursive(inst, stack, resolve) {
       break;
     // `$ZodLazy` caches its inner on the def, so a resolved edge is followed exactly
     case "lazy": {
-      const inner = def._cachedInner ?? (resolve ? inst._zod.innerType : void 0);
+      const inner = def._cachedInner ?? (resolve2 ? inst._zod.innerType : void 0);
       merge2(inner ? isRecursive(inner, stack, false) : ASSUMED);
       break;
     }
@@ -23415,7 +23415,7 @@ var require_compile = __commonJS({
       const schOrFunc = root.refs[ref];
       if (schOrFunc)
         return schOrFunc;
-      let _sch = resolve.call(this, root, ref);
+      let _sch = resolve2.call(this, root, ref);
       if (_sch === void 0) {
         const schema = (_a3 = root.localRefs) === null || _a3 === void 0 ? void 0 : _a3[ref];
         const { schemaId } = this.opts;
@@ -23442,7 +23442,7 @@ var require_compile = __commonJS({
     function sameSchemaEnv(s1, s2) {
       return s1.schema === s2.schema && s1.root === s2.root && s1.baseId === s2.baseId;
     }
-    function resolve(root, ref) {
+    function resolve2(root, ref) {
       let sch;
       while (typeof (sch = this.refs[ref]) == "string")
         ref = sch;
@@ -24306,7 +24306,7 @@ var require_fast_uri = __commonJS({
       }
       return uri;
     }
-    function resolve(baseURI, relativeURI, options) {
+    function resolve2(baseURI, relativeURI, options) {
       const schemelessOptions = options ? Object.assign({ scheme: "null" }, options) : { scheme: "null" };
       const {
         parsed: baseParsed,
@@ -24697,7 +24697,7 @@ var require_fast_uri = __commonJS({
     var fastUri = {
       SCHEMES,
       normalize,
-      resolve,
+      resolve: resolve2,
       resolveComponent,
       equal,
       serialize,
@@ -29314,12 +29314,12 @@ var StdioServerTransport = class {
     this.onclose?.();
   }
   send(message) {
-    return new Promise((resolve) => {
+    return new Promise((resolve2) => {
       const json2 = serializeMessage(message);
       if (this._stdout.write(json2)) {
-        resolve();
+        resolve2();
       } else {
-        this._stdout.once("drain", resolve);
+        this._stdout.once("drain", resolve2);
       }
     });
   }
@@ -29392,7 +29392,7 @@ function cliConfigDir() {
   return isolatedConfigDir;
 }
 function azRun(args, options = {}) {
-  return new Promise((resolve, reject) => {
+  return new Promise((resolve2, reject) => {
     const env = { ...process.env, AZURE_CORE_NO_COLOR: "true", AZURE_CORE_SURVEY_MESSAGE: "false", PYTHONIOENCODING: "utf-8" };
     if (isolatedConfigDir)
       env.AZURE_CONFIG_DIR = isolatedConfigDir;
@@ -29428,7 +29428,7 @@ function azRun(args, options = {}) {
     });
     child.on("close", (exitCode) => {
       clearTimeout(timer);
-      resolve({ exitCode, stdout: Buffer.concat(out).toString("utf8"), stderr: Buffer.concat(err).toString("utf8"), timedOut, truncated });
+      resolve2({ exitCode, stdout: Buffer.concat(out).toString("utf8"), stderr: Buffer.concat(err).toString("utf8"), timedOut, truncated });
     });
   });
 }
@@ -35837,7 +35837,7 @@ var Protocol = class {
           return;
         }
         const pollInterval = task2.pollInterval ?? this._options?.defaultTaskPollInterval ?? 1e3;
-        await new Promise((resolve) => setTimeout(resolve, pollInterval));
+        await new Promise((resolve2) => setTimeout(resolve2, pollInterval));
         options?.signal?.throwIfAborted();
       }
     } catch (error62) {
@@ -35854,7 +35854,7 @@ var Protocol = class {
    */
   request(request, resultSchema, options) {
     const { relatedRequestId, resumptionToken, onresumptiontoken, task, relatedTask } = options ?? {};
-    return new Promise((resolve, reject) => {
+    return new Promise((resolve2, reject) => {
       const earlyReject = (error62) => {
         reject(error62);
       };
@@ -35932,7 +35932,7 @@ var Protocol = class {
           if (!parseResult.success) {
             reject(parseResult.error);
           } else {
-            resolve(parseResult.data);
+            resolve2(parseResult.data);
           }
         } catch (error62) {
           reject(error62);
@@ -36194,12 +36194,12 @@ var Protocol = class {
       }
     } catch {
     }
-    return new Promise((resolve, reject) => {
+    return new Promise((resolve2, reject) => {
       if (signal.aborted) {
         reject(new McpError(ErrorCode.InvalidRequest, "Request cancelled"));
         return;
       }
-      const timeoutId = setTimeout(resolve, interval);
+      const timeoutId = setTimeout(resolve2, interval);
       signal.addEventListener("abort", () => {
         clearTimeout(timeoutId);
         reject(new McpError(ErrorCode.InvalidRequest, "Request cancelled"));
@@ -37339,7 +37339,7 @@ var McpServer = class {
     let task = createTaskResult.task;
     const pollInterval = task.pollInterval ?? 5e3;
     while (task.status !== "completed" && task.status !== "failed" && task.status !== "cancelled") {
-      await new Promise((resolve) => setTimeout(resolve, pollInterval));
+      await new Promise((resolve2) => setTimeout(resolve2, pollInterval));
       const updatedTask = await extra.taskStore.getTask(taskId);
       if (!updatedTask) {
         throw new McpError(ErrorCode.InternalError, `Task ${taskId} not found during polling`);
@@ -37908,7 +37908,7 @@ var EMPTY_COMPLETION_RESULT = {
 };
 
 // dist/server.js
-import { existsSync as existsSync2, readFileSync } from "node:fs";
+import { existsSync as existsSync3, readFileSync } from "node:fs";
 import { dirname as dirname2, join as join2 } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -39052,6 +39052,8 @@ The Azure CLI is available one-to-one: Az_CLI runs any read-only az command, Az_
 Subscriptions: tools take an optional subscription_id; otherwise the configured default or the az default is used. List_Subscriptions shows what the identity can reach. Status_Server explains the configuration and auth mode without calling Azure; Status_Gate explains a write refusal; Test_Connection proves the identity works.`;
 
 // dist/cli-policy.js
+import { existsSync as existsSync2 } from "node:fs";
+import { resolve } from "node:path";
 var BLOCKED_PREFIXES = [
   ["login", "changes the CLI sign-in"],
   ["logout", "changes the CLI sign-in"],
@@ -39143,6 +39145,7 @@ var DESTRUCTIVE_GROUPS = /* @__PURE__ */ new Set(["run-command"]);
 var SENSITIVE_TOKEN = /(^|-)(keys?|secrets?|credentials?|connection-strings?|tokens?|sas|passwords?|appsettings|kubeconfig|publish(ing)?-profiles?)($|-)/;
 var SENSITIVE_FLAGS = ["--show-values", "--show-secrets", "--show-keys"];
 var NOT_SENSITIVE = /^keyvault (secret|key|certificate) (list|list-versions|list-deleted)$/;
+var SENSITIVE_PATHS = [/^iot (hub|dps) policy (list|show)/, /^spring app test-endpoint/, /^iot hub (device-identity|module-identity) connection-string/];
 var LOCAL_PATH_FLAGS = [
   "--file",
   "-f",
@@ -39161,6 +39164,37 @@ var LOCAL_PATH_FLAGS = [
   "--cert-file",
   "--pem-file"
 ];
+var LOCAL_UPLOAD_COMMANDS = [
+  ["webapp up", "uploads the current directory"],
+  ["containerapp up", "uploads the current directory"],
+  ["staticwebapp deploy", "uploads a local directory"]
+];
+var ARM_ID = /^\/(subscriptions|providers|tenants)([/?]|$)/i;
+var URL_FLAGS = ["--url", "--uri", "-u"];
+function localPathArgument(args) {
+  for (let i = 0; i < args.length; i += 1) {
+    const raw = args[i];
+    const value = raw.startsWith("--") && raw.includes("=") ? raw.slice(raw.indexOf("=") + 1) : raw;
+    if (raw.startsWith("-") && value === raw)
+      continue;
+    if (URL_FLAGS.includes(args[i - 1] ?? "") || URL_FLAGS.some((f2) => raw.startsWith(`${f2}=`)))
+      continue;
+    if (/^[a-z][a-z0-9+.-]*:\/\//i.test(value))
+      continue;
+    if (value === "/" || ARM_ID.test(value))
+      continue;
+    if (value === "." || value === ".." || /^(\/|\.\.?\/|~|\.\.?\\)/.test(value) || /^[A-Za-z]:[\\/]/.test(value))
+      return value;
+    if (/[./\\]/.test(value) && value.length < 1024) {
+      try {
+        if (existsSync2(resolve(value)))
+          return value;
+      } catch {
+      }
+    }
+  }
+  return void 0;
+}
 var REST_FLAGS = /* @__PURE__ */ new Map([
   ["--method", "method"],
   ["-m", "method"],
@@ -39235,6 +39269,13 @@ function classify(args) {
   }
   if (hasFlag(flags, ["--debug"]))
     return result("write", false, "--debug can print request details; use --verbose");
+  const local = localPathArgument(args);
+  if (local)
+    return result("write", false, `argument '${local}' is a path on this machine; local files are not reachable from these tools (pass content inline, or use a URL)`);
+  for (const [prefix, reason] of LOCAL_UPLOAD_COMMANDS) {
+    if (joined === prefix || joined.startsWith(`${prefix} `))
+      return result("write", false, `'az ${prefix}' ${reason}`);
+  }
   const pathFlag = LOCAL_PATH_FLAGS.find((name) => hasFlag(flags, [name]) || !name.startsWith("--") && flags.some((a) => a.startsWith(name) && !a.startsWith("--")));
   if (pathFlag)
     return result("write", false, `${pathFlag} reads or writes a file on this machine; pass content inline, or use a URL or template spec instead`);
@@ -39259,10 +39300,18 @@ function classify(args) {
     const method = (rest.method ?? "get").toLowerCase();
     if (!["get", "head", "options", "post", "put", "patch", "delete"].includes(method))
       return result("read", false, `az rest method '${method}' is not recognised`);
-    return result(["get", "head", "options"].includes(method) ? "read" : method === "delete" ? "destructive" : "write");
+    let restTier = ["get", "head", "options"].includes(method) ? "read" : method === "delete" ? "destructive" : "write";
+    const vault = !url2.startsWith("/") && new URL(url2).hostname.endsWith(".vault.azure.net");
+    if (vault && restTier === "read")
+      restTier = "write";
+    return result(restTier, vault);
   }
   let tier = verbTier(verb);
-  if (path.slice(0, -1).some((token) => DESTRUCTIVE_GROUPS.has(token)))
+  if (tier !== "read" && path.slice(0, -1).some((token) => DESTRUCTIVE_GROUPS.has(token)))
+    tier = "destructive";
+  const unmanage = args.findIndex((a) => a === "--action-on-unmanage" || a.startsWith("--action-on-unmanage=") || a === "--aou" || a.startsWith("--aou="));
+  const unmanageValue = unmanage < 0 ? "" : args[unmanage].includes("=") ? args[unmanage].split("=")[1] : args[unmanage + 1] ?? "";
+  if (/^delete/i.test(unmanageValue))
     tier = "destructive";
   const mode = args.findIndex((a) => a === "--mode" || a.startsWith("--mode="));
   const modeValue = mode < 0 ? "" : args[mode].includes("=") ? args[mode].split("=")[1] : args[mode + 1] ?? "";
@@ -39270,7 +39319,7 @@ function classify(args) {
     tier = "destructive";
   if (verb === "download" && tier === "read")
     tier = "write";
-  const sensitive = path.some((token) => SENSITIVE_TOKEN.test(token)) && !NOT_SENSITIVE.test(joined) || hasFlag(flags, SENSITIVE_FLAGS);
+  const sensitive = path.some((token) => SENSITIVE_TOKEN.test(token)) && !NOT_SENSITIVE.test(joined) || SENSITIVE_PATHS.some((re) => re.test(joined)) || hasFlag(flags, SENSITIVE_FLAGS);
   if (sensitive && tier === "read")
     tier = "write";
   return result(tier, sensitive);
@@ -40739,7 +40788,7 @@ var LOGO_MIME_TYPE = "image/png";
 var LOGO_URI = "azure://assets/logo.png";
 var moduleDir = dirname2(fileURLToPath(import.meta.url));
 var logoPath = join2(moduleDir, "..", "assets", LOGO_FILE);
-var logoBase64 = existsSync2(logoPath) ? readFileSync(logoPath).toString("base64") : void 0;
+var logoBase64 = existsSync3(logoPath) ? readFileSync(logoPath).toString("base64") : void 0;
 function createServer() {
   const server = new McpServer({
     name: SERVER_NAME,

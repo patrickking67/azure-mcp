@@ -22,6 +22,8 @@
 // --template-file, --output-file, ...) are refused, so a prompt-injected command can neither upload a
 // local file nor overwrite one. az rest is parsed strictly and may only reach Azure's own hosts.
 
+import { existsSync } from "node:fs";
+import { resolve } from "node:path";
 import type { Tier } from "./gate.js";
 
 export type Classification = {
@@ -94,6 +96,8 @@ const SENSITIVE_TOKEN = /(^|-)(keys?|secrets?|credentials?|connection-strings?|t
 const SENSITIVE_FLAGS = ["--show-values", "--show-secrets", "--show-keys"];
 // Key Vault listings return names and metadata, never values, so they stay plain reads.
 const NOT_SENSITIVE = /^keyvault (secret|key|certificate) (list|list-versions|list-deleted)$/;
+// Credential reads whose names do not say so.
+const SENSITIVE_PATHS = [/^iot (hub|dps) policy (list|show)/, /^spring app test-endpoint/, /^iot hub (device-identity|module-identity) connection-string/];
 
 // Flags whose value is a path on this machine: a source the CLI reads and may upload, or a destination it writes.
 // Refused outright so a prompt-injected command cannot ship ~/.azure or ~/.ssh to a storage account it names,
@@ -102,6 +106,42 @@ const LOCAL_PATH_FLAGS = [
   "--file", "-f", "--file-path", "--template-file", "--output-file", "--dest", "--destination", "--local-path", "--src",
   "--src-path", "--custom-data", "--download-path", "--target-path", "--key-file", "--cert-file", "--pem-file",
 ];
+
+// Commands that upload the working directory without naming it.
+const LOCAL_UPLOAD_COMMANDS: [string, string][] = [
+  ["webapp up", "uploads the current directory"],
+  ["containerapp up", "uploads the current directory"],
+  ["staticwebapp deploy", "uploads a local directory"],
+];
+
+const ARM_ID = /^\/(subscriptions|providers|tenants)([/?]|$)/i;
+const URL_FLAGS = ["--url", "--uri", "-u"];
+
+/**
+ * The first argument that names a local path: anything starting with '/', './', '../' or '~' other than
+ * an ARM id or the root scope '/', '.' and '..' themselves, and any value containing '.' or '/' that
+ * exists on disk (a relative path such as token.json). URLs are not paths.
+ */
+export function localPathArgument(args: string[]): string | undefined {
+  for (let i = 0; i < args.length; i += 1) {
+    const raw = args[i];
+    const value = raw.startsWith("--") && raw.includes("=") ? raw.slice(raw.indexOf("=") + 1) : raw;
+    if (raw.startsWith("-") && value === raw) continue;
+    // az rest URIs are relative ARM paths, checked by the rest parser instead.
+    if (URL_FLAGS.includes(args[i - 1] ?? "") || URL_FLAGS.some((f) => raw.startsWith(`${f}=`))) continue;
+    if (/^[a-z][a-z0-9+.-]*:\/\//i.test(value)) continue;
+    if (value === "/" || ARM_ID.test(value)) continue;
+    if (value === "." || value === ".." || /^(\/|\.\.?\/|~|\.\.?\\)/.test(value) || /^[A-Za-z]:[\\/]/.test(value)) return value;
+    if (/[./\\]/.test(value) && value.length < 1024) {
+      try {
+        if (existsSync(resolve(value))) return value;
+      } catch {
+        // An unreadable path is not reachable either.
+      }
+    }
+  }
+  return undefined;
+}
 
 // az rest: the only flags accepted, each at most once, so what is classified is exactly what argparse will run.
 const REST_FLAGS = new Map<string, string>([
@@ -164,6 +204,11 @@ export function classify(args: string[]): Classification {
     if (arg.startsWith("~")) return result("write", false, `argument '${arg}' is a path in the home directory; local files are not reachable from these tools`);
   }
   if (hasFlag(flags, ["--debug"])) return result("write", false, "--debug can print request details; use --verbose");
+  const local = localPathArgument(args);
+  if (local) return result("write", false, `argument '${local}' is a path on this machine; local files are not reachable from these tools (pass content inline, or use a URL)`);
+  for (const [prefix, reason] of LOCAL_UPLOAD_COMMANDS) {
+    if (joined === prefix || joined.startsWith(`${prefix} `)) return result("write", false, `'az ${prefix}' ${reason}`);
+  }
   // argparse also accepts a short flag with its value attached (-fmain.bicep).
   const pathFlag = LOCAL_PATH_FLAGS.find((name) => hasFlag(flags, [name]) || (!name.startsWith("--") && flags.some((a) => a.startsWith(name) && !a.startsWith("--"))));
   if (pathFlag) return result("write", false, `${pathFlag} reads or writes a file on this machine; pass content inline, or use a URL or template spec instead`);
@@ -186,17 +231,26 @@ export function classify(args: string[]): Classification {
     }
     const method = (rest.method ?? "get").toLowerCase();
     if (!["get", "head", "options", "post", "put", "patch", "delete"].includes(method)) return result("read", false, `az rest method '${method}' is not recognised`);
-    return result(["get", "head", "options"].includes(method) ? "read" : method === "delete" ? "destructive" : "write");
+    let restTier: Tier = ["get", "head", "options"].includes(method) ? "read" : method === "delete" ? "destructive" : "write";
+    // Anything read from a vault may be a secret value, so it is gated like Get_Key_Vault_Secret.
+    const vault = !url.startsWith("/") && new URL(url).hostname.endsWith(".vault.azure.net");
+    if (vault && restTier === "read") restTier = "write";
+    return result(restTier, vault);
   }
 
   let tier = verbTier(verb);
-  if (path.slice(0, -1).some((token) => DESTRUCTIVE_GROUPS.has(token))) tier = "destructive";
+  if (tier !== "read" && path.slice(0, -1).some((token) => DESTRUCTIVE_GROUPS.has(token))) tier = "destructive";
+  // Deployment stacks delete what leaves the stack when told to.
+  const unmanage = args.findIndex((a) => a === "--action-on-unmanage" || a.startsWith("--action-on-unmanage=") || a === "--aou" || a.startsWith("--aou="));
+  const unmanageValue = unmanage < 0 ? "" : args[unmanage].includes("=") ? args[unmanage].split("=")[1] : (args[unmanage + 1] ?? "");
+  if (/^delete/i.test(unmanageValue)) tier = "destructive";
   // Complete mode deletes every resource in the group that the template does not mention.
   const mode = args.findIndex((a) => a === "--mode" || a.startsWith("--mode="));
   const modeValue = mode < 0 ? "" : args[mode].includes("=") ? args[mode].split("=")[1] : (args[mode + 1] ?? "");
   if (path[0] === "deployment" && modeValue.toLowerCase() === "complete") tier = "destructive";
   if (verb === "download" && tier === "read") tier = "write";
-  const sensitive = (path.some((token) => SENSITIVE_TOKEN.test(token)) && !NOT_SENSITIVE.test(joined)) || hasFlag(flags, SENSITIVE_FLAGS);
+  const sensitive =
+    (path.some((token) => SENSITIVE_TOKEN.test(token)) && !NOT_SENSITIVE.test(joined)) || SENSITIVE_PATHS.some((re) => re.test(joined)) || hasFlag(flags, SENSITIVE_FLAGS);
   if (sensitive && tier === "read") tier = "write";
   return result(tier, sensitive);
 }
