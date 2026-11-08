@@ -39097,7 +39097,12 @@ var BLOCKED_PREFIXES = [
   ["containerapp exec", "opens an interactive session"],
   ["network bastion ssh", "opens an interactive session"],
   ["network bastion rdp", "opens an interactive session"],
-  ["network bastion tunnel", "opens a tunnel"]
+  ["network bastion tunnel", "opens a tunnel"],
+  ["connectedk8s proxy", "opens a local proxy and writes a kubeconfig"],
+  ["survey", "opens a browser"],
+  ["devops login", "stores a token in the CLI"],
+  ["devops logout", "changes the CLI sign-in"],
+  ["devops configure", "changes CLI configuration"]
 ];
 var READ_VERBS = /* @__PURE__ */ new Set(["list", "show", "exists", "query", "version", "wait", "list-locations", "show-details"]);
 var READ_PREFIXES = ["list-", "show-", "get-", "check-"];
@@ -39148,9 +39153,16 @@ var DESTRUCTIVE_VERBS = /* @__PURE__ */ new Set([
 var DESTRUCTIVE_PREFIXES = ["delete-", "remove-", "stop-", "purge-", "deallocate-", "restart-", "reset-", "rotate-", "regenerate-", "revoke-", "force-", "manual-failover"];
 var DESTRUCTIVE_GROUPS = /* @__PURE__ */ new Set(["run-command"]);
 var SENSITIVE_TOKEN = /(^|-)(keys?|secrets?|credentials?|connection-strings?|tokens?|sas|passwords?|appsettings|kubeconfig|publish(ing)?-profiles?)($|-)/;
-var SENSITIVE_FLAGS = ["--show-values", "--show-secrets", "--show-keys"];
+var SENSITIVE_FLAGS = ["--show-values", "--show-secrets", "--show-keys", "--resolve-keyvault"];
 var NOT_SENSITIVE = /^keyvault (secret|key|certificate) (list|list-versions|list-deleted)$/;
-var SENSITIVE_PATHS = [/^iot (hub|dps) policy (list|show)/, /^spring app test-endpoint/, /^iot hub (device-identity|module-identity) connection-string/];
+var SENSITIVE_PATHS = [
+  /^iot (hub|dps) policy (list|show)/,
+  /^spring app test-endpoint/,
+  /^iot hub (device-identity|module-identity) connection-string/,
+  /^(webapp|functionapp) auth( |$)/,
+  /^(webapp|functionapp) config backup (show|list)$/,
+  /^(webapp|functionapp) config storage-account (list|show)$/
+];
 var LOCAL_PATH_FLAGS = [
   "--file",
   "-f",
@@ -39174,7 +39186,11 @@ var LOCAL_UPLOAD_COMMANDS = [
   ["containerapp up", "uploads the current directory"],
   ["staticwebapp deploy", "uploads a local directory"]
 ];
-var LOCAL_WRITE_VERBS = [["get-credentials", "writes a kubeconfig into the home directory on this machine"]];
+var LOCAL_WRITE_VERBS = [
+  ["get-credentials", "writes a kubeconfig into the home directory on this machine"],
+  ["browse", "opens a browser on this machine"]
+];
+var LOCAL_WRITE_FLAGS = [["--generate-ssh-keys", "writes a key pair into ~/.ssh on this machine; pass the public key text with --ssh-key-values instead"]];
 var ARM_ID = /^\/(subscriptions|providers|tenants)([/?]|$)/i;
 var URL_FLAGS = ["--url", "--uri", "-u"];
 function localPathArgument(args) {
@@ -39222,14 +39238,32 @@ var REST_FLAGS = /* @__PURE__ */ new Map([
   ["-o", "output"]
 ]);
 var REST_HOSTS = [/^management\.azure\.com$/, /^graph\.microsoft\.com$/, /^api\.loganalytics\.io$/, /^[a-z0-9-]{3,24}\.vault\.azure\.net$/];
-function commandPath(args) {
+var GLOBAL_SWITCHES = ["--verbose", "--debug", "--only-show-errors", "--help"];
+var GLOBAL_VALUED = ["--output", "--query"];
+function splitCommandWords(args) {
   const path = [];
-  for (const arg of args) {
-    if (arg.startsWith("-"))
+  const rest = [];
+  let i = 0;
+  while (i < args.length) {
+    const arg = args[i];
+    if (!arg.startsWith("-")) {
+      path.push(arg);
+      i += 1;
+    } else if (arg === "--" || arg === "-h" || GLOBAL_SWITCHES.some((name) => matchesLongFlag(arg, name))) {
+      rest.push(arg);
+      i += 1;
+    } else if (/^-o./.test(arg) || arg.includes("=") && GLOBAL_VALUED.some((name) => matchesLongFlag(arg, name))) {
+      rest.push(arg);
+      i += 1;
+    } else if (arg === "-o" || GLOBAL_VALUED.some((name) => matchesLongFlag(arg, name))) {
+      rest.push(...args.slice(i, i + 2));
+      i += 2;
+    } else {
       break;
-    path.push(arg);
+    }
   }
-  return path;
+  rest.push(...args.slice(i));
+  return { path, rest };
 }
 function hasFlag(args, names) {
   return args.some((arg) => names.some((name) => arg === name || arg.startsWith(`${name}=`)));
@@ -39281,11 +39315,10 @@ function parseRest(args) {
   return seen;
 }
 function classify(args) {
-  const rawPath = commandPath(args);
+  const { path: rawPath, rest: flags } = splitCommandWords(args);
   const path = rawPath.map((word) => word.toLowerCase());
   const verb = path.at(-1) ?? "";
   const joined = path.join(" ");
-  const flags = args.slice(path.length);
   const result = (tier2, sensitive2 = false, blocked) => ({ path, verb, tier: tier2, sensitive: sensitive2, ...blocked ? { blocked } : {} });
   if (path.length === 0)
     return result("read", false, `no command given; pass the words after 'az', e.g. ["vm", "list"]`);
@@ -39314,6 +39347,10 @@ function classify(args) {
   for (const [name, reason] of LOCAL_WRITE_VERBS) {
     if (verb === name)
       return result("write", false, `'az ${joined}' ${reason}`);
+  }
+  for (const [name, reason] of LOCAL_WRITE_FLAGS) {
+    if (hasFlagOrPrefix(flags, [name]))
+      return result("write", false, `${name} ${reason}`);
   }
   const pathFlag = LOCAL_PATH_FLAGS.find((name) => hasFlag(flags, [name]) || !name.startsWith("--") && flags.some((a) => a.startsWith(name) && !a.startsWith("--")));
   if (pathFlag)

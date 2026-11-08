@@ -83,6 +83,11 @@ const BLOCKED_PREFIXES: [string, string][] = [
   ["network bastion ssh", "opens an interactive session"],
   ["network bastion rdp", "opens an interactive session"],
   ["network bastion tunnel", "opens a tunnel"],
+  ["connectedk8s proxy", "opens a local proxy and writes a kubeconfig"],
+  ["survey", "opens a browser"],
+  ["devops login", "stores a token in the CLI"],
+  ["devops logout", "changes the CLI sign-in"],
+  ["devops configure", "changes CLI configuration"],
 ];
 
 const READ_VERBS = new Set(["list", "show", "exists", "query", "version", "wait", "list-locations", "show-details"]);
@@ -103,11 +108,21 @@ const DESTRUCTIVE_GROUPS = new Set(["run-command"]);
 // A read whose output is a credential when any path token matches this: account keys, shared keys, admin keys,
 // secrets, credentials, connection strings, SAS tokens, passwords, app settings (which usually hold secrets).
 const SENSITIVE_TOKEN = /(^|-)(keys?|secrets?|credentials?|connection-strings?|tokens?|sas|passwords?|appsettings|kubeconfig|publish(ing)?-profiles?)($|-)/;
-const SENSITIVE_FLAGS = ["--show-values", "--show-secrets", "--show-keys"];
+// --resolve-keyvault makes appconfig kv list/show/export print the Key Vault secret each reference points at.
+const SENSITIVE_FLAGS = ["--show-values", "--show-secrets", "--show-keys", "--resolve-keyvault"];
 // Key Vault listings return names and metadata, never values, so they stay plain reads.
 const NOT_SENSITIVE = /^keyvault (secret|key|certificate) (list|list-versions|list-deleted)$/;
 // Credential reads whose names do not say so.
-const SENSITIVE_PATHS = [/^iot (hub|dps) policy (list|show)/, /^spring app test-endpoint/, /^iot hub (device-identity|module-identity) connection-string/];
+// App Service: auth show reads config/authsettings/list (client secrets), backup show/list return storage SAS URLs,
+// storage-account list returns the mounted accounts' access keys.
+const SENSITIVE_PATHS = [
+  /^iot (hub|dps) policy (list|show)/,
+  /^spring app test-endpoint/,
+  /^iot hub (device-identity|module-identity) connection-string/,
+  /^(webapp|functionapp) auth( |$)/,
+  /^(webapp|functionapp) config backup (show|list)$/,
+  /^(webapp|functionapp) config storage-account (list|show)$/,
+];
 
 // Flags whose value is a path on this machine: a source the CLI reads and may upload, or a destination it writes.
 // Refused outright so a prompt-injected command cannot ship ~/.azure or ~/.ssh to a storage account it names,
@@ -124,7 +139,12 @@ const LOCAL_UPLOAD_COMMANDS: [string, string][] = [
   ["staticwebapp deploy", "uploads a local directory"],
 ];
 // Verbs that write into the home directory without naming a path (aks / fleet get-credentials merge into ~/.kube/config).
-const LOCAL_WRITE_VERBS: [string, string][] = [["get-credentials", "writes a kubeconfig into the home directory on this machine"]];
+const LOCAL_WRITE_VERBS: [string, string][] = [
+  ["get-credentials", "writes a kubeconfig into the home directory on this machine"],
+  ["browse", "opens a browser on this machine"],
+];
+// Flags that make the CLI write into the home directory on its own.
+const LOCAL_WRITE_FLAGS: [string, string][] = [["--generate-ssh-keys", "writes a key pair into ~/.ssh on this machine; pass the public key text with --ssh-key-values instead"]];
 
 const ARM_ID = /^\/(subscriptions|providers|tenants)([/?]|$)/i;
 const URL_FLAGS = ["--url", "--uri", "-u"];
@@ -171,13 +191,43 @@ const REST_FLAGS = new Map<string, string>([
 // Exact hosts only. A suffix such as .azure.com would include DNS labels customers control (cloudapp.azure.com).
 const REST_HOSTS = [/^management\.azure\.com$/, /^graph\.microsoft\.com$/, /^api\.loganalytics\.io$/, /^[a-z0-9-]{3,24}\.vault\.azure\.net$/];
 
-export function commandPath(args: string[]): string[] {
+// Options every command parser knows, group parsers included. argparse would accept them between command words
+// (vm --only-show-errors delete), and '--' ends option parsing but still hands the next word to the subcommand
+// parser, so the command path keeps reading words past them. Az 2.92 refuses these forms today, but the
+// classifier must not depend on that.
+const GLOBAL_SWITCHES = ["--verbose", "--debug", "--only-show-errors", "--help"];
+const GLOBAL_VALUED = ["--output", "--query"];
+
+/** Split argv into the command words and everything else, reading past global options and '--' (fail closed). */
+function splitCommandWords(args: string[]): { path: string[]; rest: string[] } {
   const path: string[] = [];
-  for (const arg of args) {
-    if (arg.startsWith("-")) break;
-    path.push(arg);
+  const rest: string[] = [];
+  let i = 0;
+  while (i < args.length) {
+    const arg = args[i];
+    if (!arg.startsWith("-")) {
+      path.push(arg);
+      i += 1;
+    } else if (arg === "--" || arg === "-h" || GLOBAL_SWITCHES.some((name) => matchesLongFlag(arg, name))) {
+      rest.push(arg);
+      i += 1;
+    } else if (/^-o./.test(arg) || (arg.includes("=") && GLOBAL_VALUED.some((name) => matchesLongFlag(arg, name)))) {
+      rest.push(arg);
+      i += 1;
+    } else if (arg === "-o" || GLOBAL_VALUED.some((name) => matchesLongFlag(arg, name))) {
+      rest.push(...args.slice(i, i + 2));
+      i += 2;
+    } else {
+      break;
+    }
   }
-  return path;
+  rest.push(...args.slice(i));
+  return { path, rest };
+}
+
+/** The command words of argv, as the CLI could read them. */
+export function commandPath(args: string[]): string[] {
+  return splitCommandWords(args).path;
 }
 
 export function hasFlag(args: string[], names: string[]): boolean {
@@ -232,12 +282,11 @@ function parseRest(args: string[]): Record<string, string> | string {
 }
 
 export function classify(args: string[]): Classification {
-  const rawPath = commandPath(args);
+  const { path: rawPath, rest: flags } = splitCommandWords(args);
   // The CLI lowercases command words before matching them, so "vm DELETE" is "vm delete" and "ACCOUNT get-access-token" is blocked.
   const path = rawPath.map((word) => word.toLowerCase());
   const verb = path.at(-1) ?? "";
   const joined = path.join(" ");
-  const flags = args.slice(path.length);
   const result = (tier: Tier, sensitive = false, blocked?: string): Classification => ({ path, verb, tier, sensitive, ...(blocked ? { blocked } : {}) });
 
   if (path.length === 0) return result("read", false, "no command given; pass the words after 'az', e.g. [\"vm\", \"list\"]");
@@ -260,6 +309,9 @@ export function classify(args: string[]): Classification {
   }
   for (const [name, reason] of LOCAL_WRITE_VERBS) {
     if (verb === name) return result("write", false, `'az ${joined}' ${reason}`);
+  }
+  for (const [name, reason] of LOCAL_WRITE_FLAGS) {
+    if (hasFlagOrPrefix(flags, [name])) return result("write", false, `${name} ${reason}`);
   }
   // argparse also accepts a short flag with its value attached (-fmain.bicep).
   const pathFlag = LOCAL_PATH_FLAGS.find((name) => hasFlag(flags, [name]) || (!name.startsWith("--") && flags.some((a) => a.startsWith(name) && !a.startsWith("--"))));

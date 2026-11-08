@@ -269,3 +269,78 @@ test("argument smuggling: the command is what the CLI will run", () => {
   assert.deepEqual(splitCommand("group show -n `id`"), ["group", "show", "-n", "`id`"]);
   assert.deepEqual(splitCommand("group show -n x; rm -rf /"), ["group", "show", "-n", "x;", "rm", "-rf", "/"]);
 });
+
+// Sixth review: global options between command words, '--', and more credential reads.
+test("global options and '--' between command words do not hide the command", () => {
+  // argparse knows the global options in every parser, so the classifier reads past them (fail closed).
+  for (const cmd of [
+    "account --only-show-errors get-access-token",
+    "account --verbose get-access-token",
+    "account --only get-access-token",
+    "account -o json get-access-token",
+    "account --output=json get-access-token",
+    "account --query [] get-access-token",
+    "account -- get-access-token",
+    "aks --only-show-errors get-credentials -g rg -n c",
+    "webapp --verbose up -n app",
+    "Account --only-show-errors Get-Access-Token",
+  ]) {
+    assert.ok(tier(cmd).blocked, cmd);
+  }
+  for (const cmd of ["vm --only-show-errors delete -g rg -n vm --yes", "vm -o json deallocate -g rg -n vm", "group -- delete -n rg", "vm --query [] delete -g rg -n vm", "vm --help delete"]) {
+    assert.equal(tier(cmd).tier, "destructive", cmd);
+  }
+  for (const cmd of ["storage account --only-show-errors keys list -n x", "keyvault --verbose secret show --vault-name v -n s"]) {
+    const c = tier(cmd);
+    assert.equal(c.sensitive, true, cmd);
+    assert.notEqual(c.tier, "read", cmd);
+  }
+  // --debug is refused wherever it sits.
+  assert.ok(tier("vm --debug list").blocked);
+  // Ordinary reads with global options after the command are unchanged.
+  for (const cmd of ["vm list -o table", "vm list --output json --query [].name", "vm show -g rg -n vm --only-show-errors", "vm list --verbose -g rg", "vm list -ojson"]) {
+    assert.equal(tier(cmd).tier, "read", cmd);
+    assert.equal(tier(cmd).blocked, undefined, cmd);
+  }
+});
+
+test("more credential reads: App Service auth, backups, mounted storage, resolved Key Vault references", () => {
+  for (const cmd of [
+    "webapp auth show -g rg -n a",
+    "functionapp auth show -g rg -n f",
+    "webapp auth microsoft show -g rg -n a",
+    "webapp config backup show -g rg --webapp-name a",
+    "webapp config backup list -g rg --webapp-name a",
+    "webapp config storage-account list -g rg -n a",
+    "appconfig kv list -n store --resolve-keyvault",
+    "appconfig kv show -n store --key k --resolve-key",
+  ]) {
+    const c = tier(cmd);
+    assert.equal(c.sensitive, true, cmd);
+    assert.equal(c.tier, "write", cmd);
+  }
+  assert.equal(tier("appconfig kv list -n store").tier, "read");
+  assert.equal(tier("webapp show -g rg -n a").sensitive, false);
+});
+
+test("commands that write into the home directory or open a browser are refused", () => {
+  for (const cmd of [
+    "vm create -g rg -n vm --image Ubuntu2204 --generate-ssh-keys",
+    "aks create -g rg -n c --generate-ssh",
+    "connectedk8s proxy -g rg -n c",
+    "webapp browse -g rg -n a",
+    "functionapp browse -g rg -n f",
+    "survey",
+    "devops login --organization https://dev.azure.com/x",
+    "devops configure --defaults project=p",
+  ]) {
+    assert.ok(tier(cmd).blocked, cmd);
+  }
+  assert.equal(tier("vm create -g rg -n vm --image Ubuntu2204 --ssh-key-values 'ssh-ed25519 AAAA x'").blocked, undefined);
+});
+
+test("a value the server appends is classified too: --subscription @file", () => {
+  // The CLI expands '@path' in any value, so a subscription id is checked like every other argument.
+  assert.ok(classify(["group", "list", "--subscription", "@/Users/me/.azure/msal_token_cache.json"]).blocked);
+  assert.ok(classify(["group", "list", "--subscription=@token.json"]).blocked);
+});
