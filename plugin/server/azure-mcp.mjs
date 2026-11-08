@@ -38352,15 +38352,15 @@ var SERVER_VERSION = "1.0.0";
 // dist/apps/shell.js
 var TOOL_PREFIX = "azure";
 var BASE_CSS = `
-:root { color-scheme: light dark; --bg:#ffffff; --fg:#1a1a1a; --muted:#6b7280; --line:#e5e7eb; --card:#f9fafb; --accent:#0559c9; --ok:#16a34a; --warn:#d97706; --bad:#dc2626; --radius:10px; }
-@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --bg:#111214; --fg:#f3f4f6; --muted:#9ca3af; --line:#2a2d33; --card:#1a1c20; --accent:#5aa0ff; --ok:#4ade80; --warn:#fbbf24; --bad:#f87171; } }
-:root[data-theme="dark"] { --bg:#111214; --fg:#f3f4f6; --muted:#9ca3af; --line:#2a2d33; --card:#1a1c20; --accent:#5aa0ff; --ok:#4ade80; --warn:#fbbf24; --bad:#f87171; }
+:root { color-scheme: light dark; --bg:#ffffff; --fg:#1a1a1a; --muted:#5f6672; --line:#e5e7eb; --card:#f7f8fa; --accent:#0559c9; --on-accent:#ffffff; --ok:#15803d; --warn:#b45309; --bad:#b91c1c; --on-bad:#ffffff; --focus:#0559c9; --radius:10px; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --bg:#141518; --fg:#f3f4f6; --muted:#a3a9b4; --line:#2e3138; --card:#1c1e23; --accent:#6aa8ff; --on-accent:#0a1830; --ok:#4ade80; --warn:#fbbf24; --bad:#f87171; --on-bad:#2a0707; --focus:#8fbcff; } }
+:root[data-theme="dark"] { --bg:#141518; --fg:#f3f4f6; --muted:#a3a9b4; --line:#2e3138; --card:#1c1e23; --accent:#6aa8ff; --on-accent:#0a1830; --ok:#4ade80; --warn:#fbbf24; --bad:#f87171; --on-bad:#2a0707; --focus:#8fbcff; }
 * { box-sizing:border-box; }
 html,body { margin:0; background:var(--bg); color:var(--fg); font:14px/1.45 var(--font-sans, system-ui, -apple-system, Segoe UI, Roboto, sans-serif); }
-body { padding:12px; }
-h1 { font-size:16px; margin:0 0 10px; display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+body { padding:12px clamp(8px, 3vw, 16px); }
+h1 { font-size:17px; line-height:1.3; margin:0 0 12px; display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
 h1 .badge { font-weight:500; }
-h2 { font-size:13px; margin:14px 0 6px; color:var(--muted); text-transform:uppercase; letter-spacing:.04em; }
+h2 { font-size:14px; font-weight:600; margin:20px 0 8px; color:var(--fg); }
 .badge { display:inline-block; padding:1px 8px; border-radius:999px; font-size:12px; background:var(--card); border:1px solid var(--line); color:var(--muted); white-space:nowrap; }
 .badge.ok { color:var(--ok); border-color:var(--ok); }
 .badge.warn { color:var(--warn); border-color:var(--warn); }
@@ -38369,28 +38369,43 @@ h2 { font-size:13px; margin:14px 0 6px; color:var(--muted); text-transform:upper
 .card { background:var(--card); border:1px solid var(--line); border-radius:var(--radius); padding:10px 12px; }
 .card .title { font-weight:600; display:flex; justify-content:space-between; gap:8px; align-items:center; }
 .card .meta { color:var(--muted); font-size:12px; margin-top:4px; }
-.card .big { font-size:22px; font-weight:600; margin-top:2px; }
+.card .big { font-size:22px; font-weight:600; margin-top:2px; font-variant-numeric:tabular-nums; overflow-wrap:anywhere; }
 .kv { display:grid; grid-template-columns:auto 1fr; gap:2px 10px; font-size:12px; margin-top:6px; }
 .kv dt { color:var(--muted); } .kv dd { margin:0; overflow-wrap:anywhere; }
 .tablewrap { max-height:420px; overflow:auto; border:1px solid var(--line); border-radius:var(--radius); }
 table { width:100%; border-collapse:separate; border-spacing:0; font-size:13px; }
 th, td { text-align:left; padding:6px 8px; border-bottom:1px solid var(--line); white-space:nowrap; }
 th { color:var(--muted); font-weight:500; cursor:pointer; user-select:none; position:sticky; top:0; background:var(--card); z-index:1; }
+th:hover { color:var(--fg); }
+td { font-variant-numeric:tabular-nums; }
 th.sorted::after { content:" \\2193"; } th.sorted.asc::after { content:" \\2191"; }
 tr:hover td { background:color-mix(in srgb, var(--card) 60%, transparent); }
 .toolbar { display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin:0 0 10px; }
-input, select, button { font:inherit; color:inherit; background:var(--card); border:1px solid var(--line); border-radius:8px; padding:6px 10px; }
-button { cursor:pointer; } button.primary { background:var(--accent); color:#fff; border-color:var(--accent); }
-button:disabled { opacity:.5; cursor:default; }
-.empty, .error { color:var(--muted); padding:20px; text-align:center; }
-.error { color:var(--bad); }
+.toolbar input[type=search] { flex:1 1 180px; min-width:0; max-width:320px; }
+input, select, button { font:inherit; color:inherit; background:var(--card); border:1px solid var(--line); border-radius:8px; padding:6px 10px; min-height:32px; }
+select { max-width:100%; }
+button { cursor:pointer; } button:hover:not(:disabled) { border-color:var(--muted); }
+button.primary { background:var(--accent); color:var(--on-accent); border-color:var(--accent); }
+button:disabled { opacity:.55; cursor:default; }
+button.link { background:none; border:0; padding:0; min-height:0; color:var(--accent); text-decoration:underline; text-underline-offset:2px; text-align:left; }
+:focus-visible { outline:2px solid var(--focus); outline-offset:2px; border-radius:4px; }
+input:focus-visible, select:focus-visible, button:focus-visible { outline-offset:1px; }
+th:focus-visible { outline-offset:-2px; }
+.empty { color:var(--muted); padding:20px; text-align:center; }
+.error { color:var(--fg); padding:12px 14px; border:1px solid var(--bad); border-left-width:4px; border-radius:var(--radius); background:color-mix(in srgb, var(--bad) 8%, var(--bg)); }
+.error strong { color:var(--bad); display:block; margin-bottom:2px; }
+.error p { margin:0; overflow-wrap:anywhere; }
+.status .error { display:inline-block; padding:4px 10px; }
 .muted { color:var(--muted); }
 .mono { font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, monospace); font-size:12px; }
 .row { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
 .bar { display:inline-block; width:80px; height:8px; border-radius:4px; background:var(--line); vertical-align:middle; margin-right:6px; overflow:hidden; }
 .bar > i { display:block; height:100%; background:var(--ok); }
 .bar.warn > i { background:var(--warn); } .bar.bad > i { background:var(--bad); }
-.status { font-size:12px; color:var(--muted); }
+.status { font-size:12px; color:var(--muted); min-height:1em; margin-bottom:6px; }
+.sr-only { position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap; }
+@media (max-width:480px) { .grid { grid-template-columns:repeat(auto-fill, minmax(150px,1fr)); } .card .big { font-size:19px; } }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { transition:none !important; animation:none !important; scroll-behavior:auto !important; } }
 `;
 var BOOT_JS = `
 const { App, applyHostStyleVariables, applyHostFonts, applyDocumentTheme } = globalThis.__mcpApps;
@@ -38404,6 +38419,9 @@ const pctClass = (n) => n == null ? '' : n >= 95 ? 'ok' : n >= 80 ? 'warn' : 'ba
 const bar = (n) => n == null ? '<span class="muted">\u2014</span>' : '<span class="bar ' + pctClass(n) + '"><i style="width:' + Math.max(0, Math.min(100, n)) + '%"></i></span>' + fmtPct(n);
 const stateClass = (s) => { const v = String(s ?? '').toLowerCase(); if (['online','ok','resolved','available','running','succeeded','healthy','enabled','true','low','info'].includes(v)) return 'ok'; if (['offline','unavailable','failed','expired','critical','high','deleting','false'].includes(v)) return 'bad'; return v ? 'warn' : ''; };
 const badge = (s) => '<span class="badge ' + stateClass(s) + '">' + esc(s ?? '\u2014') + '</span>';
+/** An error with what happened and what to try, announced to screen readers. */
+const errorBox = (message, hint) => '<div class="error" role="alert"><strong>' + esc(hint ?? 'Could not load this view.') + '</strong><p>' + esc(message) + '</p></div>';
+const emptyBox = (text) => '<div class="empty" role="status">' + esc(text) + '</div>';
 function applyContext(ctx) {
   if (!ctx) return;
   if (ctx.theme) applyDocumentTheme(ctx.theme);
@@ -38418,7 +38436,7 @@ function resultData(result) {
   try { return JSON.parse(text ?? 'null'); } catch { return text; }
 }
 /**
- * A sortable, filterable table. columns: [{key, label, render?, numeric?}].
+ * A sortable, filterable table. columns: [{key, label, render?, numeric?, cls?}]; opts.empty is shown when there are no rows.
  * Returns { redraw, setPredicate } so a view can wire its own filter controls outside the table.
  */
 function table(root, rows, columns, opts = {}) {
@@ -38429,12 +38447,25 @@ function table(root, rows, columns, opts = {}) {
       .filter((r) => !state.predicate || state.predicate(r))
       .filter((r) => !q || columns.some((c) => String(r[c.key] ?? '').toLowerCase().includes(q)))
       .sort((a, b) => { const x = a[state.sortKey], y = b[state.sortKey]; const c = typeof x === 'number' && typeof y === 'number' ? x - y : (x == null) - (y == null) || String(x ?? '').localeCompare(String(y ?? ''), undefined, { numeric: true }); return state.asc ? c : -c; });
-    root.innerHTML = '<div class="toolbar"><input type="search" placeholder="' + esc(opts.placeholder ?? 'Filter\u2026') + '" value="' + esc(state.filter) + '"><span class="muted">' + shown.length + ' of ' + rows.length + '</span>' + (opts.toolbar ?? '') + '</div>'
-      + '<div class="tablewrap"><table><thead><tr>' + columns.map((c) => '<th data-key="' + c.key + '" class="' + (c.key === state.sortKey ? 'sorted' + (state.asc ? ' asc' : '') : '') + '">' + esc(c.label) + '</th>').join('') + '</tr></thead>'
-      + '<tbody>' + (shown.map((r) => '<tr>' + columns.map((c) => '<td>' + (c.render ? c.render(r[c.key], r) : esc(r[c.key] ?? '\u2014')) + '</td>').join('') + '</tr>').join('') || '<tr><td colspan="' + columns.length + '" class="empty">Nothing matches.</td></tr>') + '</tbody></table></div>';
+    const label = opts.placeholder ?? 'Filter\u2026';
+    const none = rows.length === 0 ? (opts.empty ?? 'Nothing to show.') : 'Nothing matches the filter. Clear it to see all ' + rows.length + '.';
+    const sortState = (c) => c.key === state.sortKey ? (state.asc ? 'ascending' : 'descending') : 'none';
+    if (rows.length === 0) {
+      // Nothing to filter or sort: say so, and keep the view's own controls (Refresh, type filter).
+      root.innerHTML = (opts.toolbar ? '<div class="toolbar">' + opts.toolbar + '</div>' : '') + emptyBox(none);
+      if (opts.onDraw) opts.onDraw(root);
+      return;
+    }
+    root.innerHTML = '<div class="toolbar"><input type="search" aria-label="' + esc(label) + '" placeholder="' + esc(label) + '" value="' + esc(state.filter) + '"><span class="muted" role="status">' + shown.length + ' of ' + rows.length + '</span>' + (opts.toolbar ?? '') + '</div>'
+      + '<div class="tablewrap"><table><thead><tr>' + columns.map((c) => '<th scope="col" tabindex="0" aria-sort="' + sortState(c) + '" data-key="' + c.key + '" class="' + (c.key === state.sortKey ? 'sorted' + (state.asc ? ' asc' : '') : '') + (c.cls ? ' ' + c.cls : '') + '">' + (c.label ? esc(c.label) : '<span class="sr-only">Actions</span>') + '</th>').join('') + '</tr></thead>'
+      + '<tbody>' + (shown.map((r) => '<tr>' + columns.map((c) => '<td' + (c.cls ? ' class="' + c.cls + '"' : '') + '>' + (c.render ? c.render(r[c.key], r) : esc(r[c.key] ?? '\u2014')) + '</td>').join('') + '</tr>').join('') || '<tr><td colspan="' + columns.length + '" class="empty">' + esc(none) + '</td></tr>') + '</tbody></table></div>';
     const input = $('input[type=search]', root);
     input.oninput = (e) => { const pos = e.target.selectionStart; state.filter = e.target.value; draw(); const again = $('input[type=search]', root); again.focus(); again.setSelectionRange(pos, pos); };
-    root.querySelectorAll('th').forEach((th) => { th.onclick = () => { const k = th.dataset.key; if (state.sortKey === k) state.asc = !state.asc; else { state.sortKey = k; state.asc = true; } draw(); }; });
+    root.querySelectorAll('th').forEach((th) => {
+      const sort = () => { const k = th.dataset.key; if (state.sortKey === k) state.asc = !state.asc; else { state.sortKey = k; state.asc = true; } draw(); $('th[data-key="' + k + '"]', root)?.focus(); };
+      th.onclick = sort;
+      th.onkeydown = (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); sort(); } };
+    });
     if (opts.onDraw) opts.onDraw(root);
   };
   draw();
@@ -38447,9 +38478,12 @@ async function boot(render) {
   const app = new App({ name: ${JSON.stringify(TOOL_PREFIX)}, version: ${JSON.stringify(SERVER_VERSION)} }, {}, { autoResize: true });
   view.app = app;
   view.call = async (name, args) => resultData(await app.callServerTool({ name, arguments: args }));
-  const draw = () => { try { render(root, view); } catch (e) { root.innerHTML = '<div class="error">' + esc(e.message) + '</div>'; } };
+  const draw = () => { try { render(root, view); } catch (e) { root.innerHTML = errorBox(e.message, 'This view could not render the result.'); } };
   app.ontoolinput = (p) => { view.input = p.arguments ?? {}; };
-  app.ontoolresult = (p) => { try { view.data = resultData(p); } catch (e) { root.innerHTML = '<div class="error">' + esc(e.message) + '</div>'; return; } draw(); };
+  app.ontoolresult = (p) => {
+    try { view.data = resultData(p); } catch (e) { root.innerHTML = errorBox(e.message, 'Azure did not return data for this view. Ask for Test_Connection or Status_Server to see why.'); return; }
+    draw();
+  };
   app.onhostcontextchanged = (ctx) => { applyContext(ctx); };
   await app.connect();
   applyContext(app.getHostContext());
@@ -38467,7 +38501,7 @@ function renderPage(page) {
 <style>${BASE_CSS}${page.css ?? ""}</style>
 </head>
 <body>
-<div id="app"><div class="empty">Loading\u2026</div></div>
+<main id="app"><div class="empty" role="status">Loading\u2026</div></main>
 <script type="module">
 ${APP_RUNTIME}
 ${BOOT_JS}
@@ -38550,14 +38584,16 @@ boot((root, view) => {
     + '<div class="card"><div class="title">Daily average</div><div class="big">' + fmtMoney((d.daily ?? []).length ? d.total / d.daily.length : null, cur) + '</div><div class="meta">' + (d.daily ?? []).length + ' days</div></div>'
     + '<div class="card"><div class="title">Top service</div><div class="big" style="font-size:16px">' + esc(d.by_service?.[0]?.service ?? '\u2014') + '</div><div class="meta">' + fmtMoney(d.by_service?.[0]?.cost, cur) + '</div></div>'
     + '</div>'
-    + '<h2>Daily</h2><div class="card"><div class="spark">' + (d.daily ?? []).map((x) => '<i title="' + esc(x.date + ': ' + fmtMoney(x.cost, cur)) + '" style="height:' + Math.max(1, Math.round(100 * x.cost / maxDay)) + '%"></i>').join('') + '</div></div>'
+    + '<h2>Daily</h2>' + ((d.daily ?? []).length
+      ? '<div class="card"><div class="spark" role="img" aria-label="' + esc('Daily cost for ' + d.daily.length + ' days, highest ' + fmtMoney(maxDay, cur)) + '">' + d.daily.map((x) => '<i title="' + esc(x.date + ': ' + fmtMoney(x.cost, cur)) + '" style="height:' + Math.max(1, Math.round(100 * x.cost / maxDay)) + '%"></i>').join('') + '</div></div>'
+      : emptyBox('No daily cost data for this period yet.'))
     + '<h2>By service</h2><div id="svc"></div><h2>By resource group</h2><div id="rg"></div>'
     + ((d.budgets ?? []).length ? '<h2>Budgets</h2><div id="budgets"></div>' : '')
     + ((d.notes ?? []).length ? '<div class="status" style="margin-top:8px">Partial data: ' + d.notes.map(esc).join('<br>') + '</div>' : '');
   const money = (v) => fmtMoney(v, cur);
   const share = (rows) => { const max = Math.max(0.01, ...rows.map((r) => r.cost)); return (v) => '<span class="bar"><i style="width:' + Math.round(100 * v / max) + '%"></i></span>' + money(v); };
-  table($('#svc'), d.by_service ?? [], [{ key: 'service', label: 'Service' }, { key: 'cost', label: 'Cost', render: share(d.by_service ?? []) }], { sortKey: 'cost', asc: false, placeholder: 'Filter services\u2026' });
-  table($('#rg'), d.by_resource_group ?? [], [{ key: 'resource_group', label: 'Resource group' }, { key: 'cost', label: 'Cost', render: share(d.by_resource_group ?? []) }], { sortKey: 'cost', asc: false, placeholder: 'Filter groups\u2026' });
+  table($('#svc'), d.by_service ?? [], [{ key: 'service', label: 'Service' }, { key: 'cost', label: 'Cost', render: share(d.by_service ?? []) }], { sortKey: 'cost', asc: false, placeholder: 'Filter services\u2026', empty: 'No cost by service for this period.' });
+  table($('#rg'), d.by_resource_group ?? [], [{ key: 'resource_group', label: 'Resource group' }, { key: 'cost', label: 'Cost', render: share(d.by_resource_group ?? []) }], { sortKey: 'cost', asc: false, placeholder: 'Filter groups\u2026', empty: 'No cost by resource group for this period.' });
   if ((d.budgets ?? []).length) table($('#budgets'), d.budgets, [
     { key: 'name', label: 'Budget' },
     { key: 'amount', label: 'Amount', render: money },
@@ -38636,17 +38672,17 @@ boot((root, view) => {
   table($('#types'), d.by_type ?? [], [
     { key: 'type', label: 'Type', render: (v) => '<span class="mono">' + esc(v) + '</span>' },
     { key: 'count', label: 'Count' },
-  ], { sortKey: 'count', asc: false, placeholder: 'Filter types\u2026' });
+  ], { sortKey: 'count', asc: false, placeholder: 'Filter types\u2026', empty: 'No resources in this subscription.' });
   table($('#groups'), d.resource_groups ?? [], [
     { key: 'name', label: 'Resource group' },
     { key: 'location', label: 'Region' },
     { key: 'resources', label: 'Resources' },
-  ], { sortKey: 'resources', asc: false, placeholder: 'Filter groups\u2026' });
+  ], { sortKey: 'resources', asc: false, placeholder: 'Filter groups\u2026', empty: 'No resource groups in this subscription.' });
   const maxCost = Math.max(1, ...(d.top_services ?? []).map((s) => s.cost));
   table($('#services'), d.top_services ?? [], [
     { key: 'service', label: 'Service' },
     { key: 'cost', label: 'Cost', render: (v) => '<span class="bar"><i style="width:' + Math.round(100 * v / maxCost) + '%"></i></span>' + fmtMoney(v, t.currency) },
-  ], { sortKey: 'cost', asc: false, placeholder: 'Filter services\u2026' });
+  ], { sortKey: 'cost', asc: false, placeholder: 'Filter services\u2026', empty: 'No cost data yet this month, or no Cost Management Reader role.' });
   if ((d.unhealthy ?? []).length) table($('#unhealthy'), d.unhealthy, [
     { key: 'name', label: 'Resource' },
     { key: 'state', label: 'State', render: (v) => badge(v) },
@@ -38724,7 +38760,7 @@ function registerResourceView(server) {
     invoked: "Resources ready",
     page: {
       title: "Azure Resources",
-      css: `.detail { margin-top:10px; } .detail pre { max-height:360px; overflow:auto; background:var(--card); border:1px solid var(--line); border-radius:var(--radius); padding:10px; margin:6px 0 0; white-space:pre-wrap; word-break:break-all; } td .link { color:var(--accent); cursor:pointer; text-decoration:underline; }`,
+      css: `.detail { margin-top:10px; } .detail pre { max-height:360px; overflow:auto; background:var(--card); border:1px solid var(--line); border-radius:var(--radius); padding:10px; margin:6px 0 0; white-space:pre-wrap; word-break:break-all; } `,
       script: `
 boot((root, view) => {
   const d = view.data;
@@ -38732,7 +38768,7 @@ boot((root, view) => {
   const types = [...new Set(rows.map((r) => r.type))].sort();
   root.innerHTML = '<h1>Resources <span class="badge">' + rows.length + '</span>' + (d.truncated ? ' <span class="badge warn">truncated</span>' : '') + '</h1><div id="list"></div><div class="detail" id="detail"></div>';
   const t = table($('#list'), rows, [
-    { key: 'name', label: 'Name', render: (v, r) => '<span class="link" data-open="' + esc(r.id) + '">' + esc(v) + '</span>' },
+    { key: 'name', label: 'Name', render: (v, r) => '<button type="button" class="link" data-open="' + esc(r.id) + '" aria-label="Show the ARM document for ' + esc(v) + '">' + esc(v) + '</button>' },
     { key: 'type', label: 'Type', render: (v) => '<span class="mono">' + esc(v) + '</span>' },
     { key: 'location', label: 'Region' },
     { key: 'resource_group', label: 'Resource group' },
@@ -38740,7 +38776,8 @@ boot((root, view) => {
     { key: 'tags', label: 'Tags', render: (v) => v ? Object.entries(v).slice(0, 3).map(([k, x]) => '<span class="badge">' + esc(k) + '=' + esc(x) + '</span>').join(' ') : '<span class="muted">\u2014</span>' },
   ], {
     placeholder: 'Filter resources\u2026',
-    toolbar: '<select id="type"><option value="">All types (' + types.length + ')</option>' + types.map((x) => '<option>' + esc(x) + '</option>').join('') + '</select>',
+    empty: 'No resources match this scope. Check the subscription, resource group or type filter.',
+    toolbar: '<select id="type" aria-label="Resource type"><option value="">All types (' + types.length + ')</option>' + types.map((x) => '<option>' + esc(x) + '</option>').join('') + '</select>',
     onDraw: (el) => {
       const sel = $('#type', el);
       sel.value = view.typeFilter ?? '';
@@ -38752,7 +38789,7 @@ boot((root, view) => {
           const doc = await view.call('Get_Resource', { resource_id: a.dataset.open });
           detail.innerHTML = '<h2>' + esc(a.textContent) + '</h2><div class="mono muted">' + esc(a.dataset.open) + '</div><pre></pre>';
           $('pre', detail).textContent = JSON.stringify(doc, null, 2);
-        } catch (e) { detail.innerHTML = '<div class="error">' + esc(e.message) + '</div>'; }
+        } catch (e) { detail.innerHTML = errorBox(e.message, 'Could not read this resource.'); }
       }; });
     },
   });
@@ -38811,18 +38848,18 @@ boot((root, view) => {
     { key: 'percentage', label: 'Score', render: (v) => bar(v) },
     { key: 'unhealthy', label: 'Unhealthy resources' },
     { key: 'potential', label: 'Points to gain' },
-  ], { sortKey: 'potential', asc: false, placeholder: 'Filter controls\u2026' });
+  ], { sortKey: 'potential', asc: false, placeholder: 'Filter controls\u2026', empty: 'No secure score controls. Defender for Cloud may not be enabled on this subscription.' });
   table($('#alerts'), d.alerts ?? [], [
     { key: 'severity', label: 'Severity', render: (v) => badge(v) },
     { key: 'name', label: 'Alert' },
     { key: 'entity', label: 'Entity' },
     { key: 'time', label: 'When', render: (v) => esc(fmtAgo(v)) },
-  ], { sortKey: 'time', asc: false, placeholder: 'Filter alerts\u2026' });
+  ], { sortKey: 'time', asc: false, placeholder: 'Filter alerts\u2026', empty: 'No active Defender alerts.' });
   table($('#advisor'), d.advisor ?? [], [
     { key: 'impact', label: 'Impact', render: (v) => badge(v) },
     { key: 'problem', label: 'Problem' },
     { key: 'resource', label: 'Resource' },
-  ], { placeholder: 'Filter recommendations\u2026' });
+  ], { placeholder: 'Filter recommendations\u2026', empty: 'No Advisor security recommendations.' });
 });
 `
     },
@@ -38870,7 +38907,12 @@ boot((root, view) => {
 // dist/apps/views/actions.js
 var ACTION_CSS = `
 .actions button { padding:3px 8px; font-size:12px; margin-right:4px; }
-.actions button.arm { background:var(--bad); color:#fff; border-color:var(--bad); }
+.actions { display:inline-flex; gap:4px; }
+/* The action column stays in view when a wide table scrolls sideways. */
+td.col-actions, th.col-actions { position:sticky; right:0; box-shadow:-1px 0 0 var(--line); }
+td.col-actions { background:var(--bg); } th.col-actions { z-index:2; }
+.actions button { margin-right:0; }
+.actions button.arm { background:var(--bad); color:var(--on-bad); border-color:var(--bad); }
 `;
 var ACTION_JS = `
 function wireActions(root, view, toolFor, argsFor, statusEl) {
@@ -38878,7 +38920,8 @@ function wireActions(root, view, toolFor, argsFor, statusEl) {
     b.onclick = async () => {
       if (!b.classList.contains('arm')) {
         root.querySelectorAll('button.arm').forEach((o) => { o.classList.remove('arm'); o.textContent = o.dataset.label; });
-        b.classList.add('arm'); b.textContent = 'Confirm ' + b.dataset.label.toLowerCase(); return;
+        b.classList.add('arm'); b.textContent = 'Confirm ' + b.dataset.label.toLowerCase();
+        statusEl.textContent = 'Click again to ' + b.dataset.label.toLowerCase() + ' ' + b.dataset.name + '. Any other button cancels.'; return;
       }
       b.disabled = true; b.textContent = b.dataset.label + '\u2026';
       const row = view.rows.find((r) => r.id === b.dataset.id);
@@ -38886,18 +38929,18 @@ function wireActions(root, view, toolFor, argsFor, statusEl) {
         const out = await view.call(toolFor(b.dataset.action), { ...argsFor(row), confirm: true });
         statusEl.innerHTML = '<span class="badge ok">' + esc(b.dataset.label) + ' accepted</span> ' + esc(row.name) + (out && out.note ? ' \xB7 ' + esc(out.note) : '') + ' \xB7 refresh in a minute to see the new state.';
       } catch (e) {
-        statusEl.innerHTML = '<span class="error">' + esc(e.message) + '</span>';
+        statusEl.innerHTML = errorBox(e.message, b.dataset.label + ' was refused. Nothing was changed.');
       }
       b.disabled = false; b.classList.remove('arm'); b.textContent = b.dataset.label;
     };
   });
 }
 function actionButton(row, action, label) {
-  return '<button data-action="' + esc(action) + '" data-id="' + esc(row.id) + '" data-label="' + esc(label) + '">' + esc(label) + '</button>';
+  return '<button type="button" data-action="' + esc(action) + '" data-id="' + esc(row.id) + '" data-name="' + esc(row.name) + '" data-label="' + esc(label) + '" aria-label="' + esc(label + ' ' + row.name) + '">' + esc(label) + '</button>';
 }
 async function refresh(view, tool, statusEl) {
   statusEl.textContent = 'Refreshing\u2026';
-  try { view.data = await view.call(tool, view.input); view.redraw(); } catch (e) { statusEl.innerHTML = '<span class="error">' + esc(e.message) + '</span>'; }
+  try { view.data = await view.call(tool, view.input); view.redraw(); } catch (e) { statusEl.innerHTML = errorBox(e.message, 'Refresh failed. The table shows the last result.'); }
 }
 `;
 
@@ -38925,7 +38968,7 @@ boot((root, view) => {
   root.innerHTML = '<h1>Virtual machines <span class="badge">' + view.rows.length + '</span>'
     + Object.entries(counts).map(([k, n]) => ' ' + badge(k + ' ' + n)).join('')
     + (d.truncated ? ' <span class="badge warn">truncated</span>' : '') + '</h1>'
-    + '<div class="status" id="status"></div><div id="list"></div>';
+    + '<div class="status" id="status" role="status" aria-live="polite"></div><div id="list"></div>';
   const status = $('#status');
   table($('#list'), view.rows, [
     { key: 'name', label: 'Name' },
@@ -38934,12 +38977,13 @@ boot((root, view) => {
     { key: 'os', label: 'OS' },
     { key: 'location', label: 'Region' },
     { key: 'resource_group', label: 'Resource group' },
-    { key: 'id', label: '', render: (_v, r) => '<span class="actions">'
+    { key: 'id', label: '', cls: 'col-actions', render: (_v, r) => '<span class="actions">'
         + (r.power === 'running' ? actionButton(r, 'deallocate', 'Deallocate') + actionButton(r, 'restart', 'Restart') : actionButton(r, 'start', 'Start'))
         + '</span>' },
   ], {
     placeholder: 'Filter VMs\u2026',
-    toolbar: '<button id="refresh">Refresh</button>',
+    toolbar: '<button type="button" id="refresh">Refresh</button>',
+    empty: 'No virtual machines in this subscription' + (view.input.resource_group ? ' and resource group ' + view.input.resource_group : '') + '.',
     onDraw: (el) => {
       wireActions(el, view, (a) => ({ start: 'Start_VM', deallocate: 'Stop_VM', restart: 'Restart_VM' })[a], (r) => ({ subscription_id: r.subscription_id, resource_group: r.resource_group, vm_name: r.name }), status);
       $('#refresh', el).onclick = () => refresh(view, 'View_Virtual_Machines', status);
@@ -38990,7 +39034,7 @@ boot((root, view) => {
   view.rows = d.web_apps ?? [];
   const stopped = view.rows.filter((r) => String(r.state).toLowerCase() !== 'running').length;
   root.innerHTML = '<h1>Web apps <span class="badge">' + view.rows.length + '</span>' + (stopped ? ' <span class="badge warn">' + stopped + ' not running</span>' : '') + '</h1>'
-    + '<div class="status" id="status"></div><div id="list"></div>';
+    + '<div class="status" id="status" role="status" aria-live="polite"></div><div id="list"></div>';
   const status = $('#status');
   table($('#list'), view.rows, [
     { key: 'name', label: 'Name' },
@@ -39000,12 +39044,13 @@ boot((root, view) => {
     { key: 'https_only', label: 'HTTPS only', render: (v) => badge(v ? 'true' : 'false') },
     { key: 'location', label: 'Region' },
     { key: 'resource_group', label: 'Resource group' },
-    { key: 'id', label: '', render: (_v, r) => '<span class="actions">'
+    { key: 'id', label: '', cls: 'col-actions', render: (_v, r) => '<span class="actions">'
         + (String(r.state).toLowerCase() === 'running' ? actionButton(r, 'stop', 'Stop') + actionButton(r, 'restart', 'Restart') : actionButton(r, 'start', 'Start'))
         + '</span>' },
   ], {
     placeholder: 'Filter apps\u2026',
-    toolbar: '<button id="refresh">Refresh</button>',
+    toolbar: '<button type="button" id="refresh">Refresh</button>',
+    empty: 'No web apps in this subscription' + (view.input.resource_group ? ' and resource group ' + view.input.resource_group : '') + '.',
     onDraw: (el) => {
       wireActions(el, view, (a) => ({ start: 'Start_Web_App', stop: 'Stop_Web_App', restart: 'Restart_Web_App' })[a], (r) => ({ subscription_id: r.subscription_id, resource_group: r.resource_group, app_name: r.name }), status);
       $('#refresh', el).onclick = () => refresh(view, 'View_Web_Apps', status);
@@ -39097,7 +39142,12 @@ var BLOCKED_PREFIXES = [
   ["containerapp exec", "opens an interactive session"],
   ["network bastion ssh", "opens an interactive session"],
   ["network bastion rdp", "opens an interactive session"],
-  ["network bastion tunnel", "opens a tunnel"]
+  ["network bastion tunnel", "opens a tunnel"],
+  ["connectedk8s proxy", "opens a local proxy and writes a kubeconfig"],
+  ["survey", "opens a browser"],
+  ["devops login", "stores a token in the CLI"],
+  ["devops logout", "changes the CLI sign-in"],
+  ["devops configure", "changes CLI configuration"]
 ];
 var READ_VERBS = /* @__PURE__ */ new Set(["list", "show", "exists", "query", "version", "wait", "list-locations", "show-details"]);
 var READ_PREFIXES = ["list-", "show-", "get-", "check-"];
@@ -39148,9 +39198,16 @@ var DESTRUCTIVE_VERBS = /* @__PURE__ */ new Set([
 var DESTRUCTIVE_PREFIXES = ["delete-", "remove-", "stop-", "purge-", "deallocate-", "restart-", "reset-", "rotate-", "regenerate-", "revoke-", "force-", "manual-failover"];
 var DESTRUCTIVE_GROUPS = /* @__PURE__ */ new Set(["run-command"]);
 var SENSITIVE_TOKEN = /(^|-)(keys?|secrets?|credentials?|connection-strings?|tokens?|sas|passwords?|appsettings|kubeconfig|publish(ing)?-profiles?)($|-)/;
-var SENSITIVE_FLAGS = ["--show-values", "--show-secrets", "--show-keys"];
+var SENSITIVE_FLAGS = ["--show-values", "--show-secrets", "--show-keys", "--resolve-keyvault"];
 var NOT_SENSITIVE = /^keyvault (secret|key|certificate) (list|list-versions|list-deleted)$/;
-var SENSITIVE_PATHS = [/^iot (hub|dps) policy (list|show)/, /^spring app test-endpoint/, /^iot hub (device-identity|module-identity) connection-string/];
+var SENSITIVE_PATHS = [
+  /^iot (hub|dps) policy (list|show)/,
+  /^spring app test-endpoint/,
+  /^iot hub (device-identity|module-identity) connection-string/,
+  /^(webapp|functionapp) auth( |$)/,
+  /^(webapp|functionapp) config backup (show|list)$/,
+  /^(webapp|functionapp) config storage-account (list|show)$/
+];
 var LOCAL_PATH_FLAGS = [
   "--file",
   "-f",
@@ -39174,7 +39231,11 @@ var LOCAL_UPLOAD_COMMANDS = [
   ["containerapp up", "uploads the current directory"],
   ["staticwebapp deploy", "uploads a local directory"]
 ];
-var LOCAL_WRITE_VERBS = [["get-credentials", "writes a kubeconfig into the home directory on this machine"]];
+var LOCAL_WRITE_VERBS = [
+  ["get-credentials", "writes a kubeconfig into the home directory on this machine"],
+  ["browse", "opens a browser on this machine"]
+];
+var LOCAL_WRITE_FLAGS = [["--generate-ssh-keys", "writes a key pair into ~/.ssh on this machine; pass the public key text with --ssh-key-values instead"]];
 var ARM_ID = /^\/(subscriptions|providers|tenants)([/?]|$)/i;
 var URL_FLAGS = ["--url", "--uri", "-u"];
 function localPathArgument(args) {
@@ -39222,14 +39283,32 @@ var REST_FLAGS = /* @__PURE__ */ new Map([
   ["-o", "output"]
 ]);
 var REST_HOSTS = [/^management\.azure\.com$/, /^graph\.microsoft\.com$/, /^api\.loganalytics\.io$/, /^[a-z0-9-]{3,24}\.vault\.azure\.net$/];
-function commandPath(args) {
+var GLOBAL_SWITCHES = ["--verbose", "--debug", "--only-show-errors", "--help"];
+var GLOBAL_VALUED = ["--output", "--query"];
+function splitCommandWords(args) {
   const path = [];
-  for (const arg of args) {
-    if (arg.startsWith("-"))
+  const rest = [];
+  let i = 0;
+  while (i < args.length) {
+    const arg = args[i];
+    if (!arg.startsWith("-")) {
+      path.push(arg);
+      i += 1;
+    } else if (arg === "--" || arg === "-h" || GLOBAL_SWITCHES.some((name) => matchesLongFlag(arg, name))) {
+      rest.push(arg);
+      i += 1;
+    } else if (/^-o./.test(arg) || arg.includes("=") && GLOBAL_VALUED.some((name) => matchesLongFlag(arg, name))) {
+      rest.push(arg);
+      i += 1;
+    } else if (arg === "-o" || GLOBAL_VALUED.some((name) => matchesLongFlag(arg, name))) {
+      rest.push(...args.slice(i, i + 2));
+      i += 2;
+    } else {
       break;
-    path.push(arg);
+    }
   }
-  return path;
+  rest.push(...args.slice(i));
+  return { path, rest };
 }
 function hasFlag(args, names) {
   return args.some((arg) => names.some((name) => arg === name || arg.startsWith(`${name}=`)));
@@ -39281,11 +39360,10 @@ function parseRest(args) {
   return seen;
 }
 function classify(args) {
-  const rawPath = commandPath(args);
+  const { path: rawPath, rest: flags } = splitCommandWords(args);
   const path = rawPath.map((word) => word.toLowerCase());
   const verb = path.at(-1) ?? "";
   const joined = path.join(" ");
-  const flags = args.slice(path.length);
   const result = (tier2, sensitive2 = false, blocked) => ({ path, verb, tier: tier2, sensitive: sensitive2, ...blocked ? { blocked } : {} });
   if (path.length === 0)
     return result("read", false, `no command given; pass the words after 'az', e.g. ["vm", "list"]`);
@@ -39314,6 +39392,10 @@ function classify(args) {
   for (const [name, reason] of LOCAL_WRITE_VERBS) {
     if (verb === name)
       return result("write", false, `'az ${joined}' ${reason}`);
+  }
+  for (const [name, reason] of LOCAL_WRITE_FLAGS) {
+    if (hasFlagOrPrefix(flags, [name]))
+      return result("write", false, `${name} ${reason}`);
   }
   const pathFlag = LOCAL_PATH_FLAGS.find((name) => hasFlag(flags, [name]) || !name.startsWith("--") && flags.some((a) => a.startsWith(name) && !a.startsWith("--")));
   if (pathFlag)
@@ -39429,7 +39511,7 @@ function ensureCliSession() {
 var commandInput = {
   args: external_exports.array(external_exports.string()).optional().describe('The words after "az", one per element, e.g. ["vm", "list", "-g", "my-rg"]. Preferred over command: no quoting needed.'),
   command: external_exports.string().optional().describe('The same as one string, e.g. "vm list -g my-rg --query \\"[].name\\"". A leading "az" is ignored. Quotes group words; nothing is expanded.'),
-  subscription_id: external_exports.string().optional().describe("Adds --subscription <id> when the command does not already carry one. Leave unset for commands without that argument (az ad ...)."),
+  subscription_id: external_exports.string().regex(/^[^@~\-\s]/, "subscription_id must be a subscription id or name, not a flag, '@file' or path").optional().describe("Adds --subscription <id> when the command does not already carry one. Leave unset for commands without that argument (az ad ...)."),
   timeout_seconds: external_exports.number().int().min(5).max(900).optional().describe("Kill the command after this many seconds. Default 120. Prefer --no-wait for long-running operations.")
 };
 function argvOf(input2) {
@@ -39439,18 +39521,25 @@ function argvOf(input2) {
     return splitCommand(input2.command);
   throw new Error('Pass args (["vm", "list"]) or command ("vm list").');
 }
-async function execute(tool, input2, check2) {
-  const argv = argvOf(input2);
-  const classification = classify(argv);
-  if (classification.blocked)
-    throw new Error(`${tool} refused: ${classification.blocked}. Nothing was run.`);
-  check2(classification);
-  await ensureCliSession();
-  const full = [...argv];
+function fullArgv(input2) {
+  const full = argvOf(input2);
   if (input2.subscription_id && !hasFlag(full, ["--subscription"]))
     full.push("--subscription", input2.subscription_id);
   if (!hasFlag(full, ["--output", "-o"]))
     full.push("--output", "json");
+  return full;
+}
+function classifyInput(input2) {
+  return classify(fullArgv(input2));
+}
+async function execute(tool, input2, check2) {
+  const argv = argvOf(input2);
+  const full = fullArgv(input2);
+  const classification = classifyInput(input2);
+  if (classification.blocked)
+    throw new Error(`${tool} refused: ${classification.blocked}. Nothing was run.`);
+  check2(classification);
+  await ensureCliSession();
   const run = await azRun(full, { timeoutMs: (input2.timeout_seconds ?? 120) * 1e3, cwd: cliSandboxDir() });
   let output2 = run.stdout;
   const trimmed = run.stdout.trim();
@@ -39501,7 +39590,7 @@ function registerCliTools(server) {
     tier: "destructive",
     // The annotation says destructive because it can be; the gate applied is the command's own tier.
     runtimeTier: (input2) => {
-      const c = classify(argvOf(input2));
+      const c = classifyInput(input2);
       if (c.blocked)
         throw new Error(`Az_CLI_Run refused: ${c.blocked}. Nothing was run.`);
       return c.tier;

@@ -44,17 +44,17 @@ boot((root, view) => {
   table($('#types'), d.by_type ?? [], [
     { key: 'type', label: 'Type', render: (v) => '<span class="mono">' + esc(v) + '</span>' },
     { key: 'count', label: 'Count' },
-  ], { sortKey: 'count', asc: false, placeholder: 'Filter types…' });
+  ], { sortKey: 'count', asc: false, placeholder: 'Filter types…', empty: 'No resources in this subscription.' });
   table($('#groups'), d.resource_groups ?? [], [
     { key: 'name', label: 'Resource group' },
     { key: 'location', label: 'Region' },
     { key: 'resources', label: 'Resources' },
-  ], { sortKey: 'resources', asc: false, placeholder: 'Filter groups…' });
+  ], { sortKey: 'resources', asc: false, placeholder: 'Filter groups…', empty: 'No resource groups in this subscription.' });
   const maxCost = Math.max(1, ...(d.top_services ?? []).map((s) => s.cost));
   table($('#services'), d.top_services ?? [], [
     { key: 'service', label: 'Service' },
     { key: 'cost', label: 'Cost', render: (v) => '<span class="bar"><i style="width:' + Math.round(100 * v / maxCost) + '%"></i></span>' + fmtMoney(v, t.currency) },
-  ], { sortKey: 'cost', asc: false, placeholder: 'Filter services…' });
+  ], { sortKey: 'cost', asc: false, placeholder: 'Filter services…', empty: 'No cost data yet this month, or no Cost Management Reader role.' });
   if ((d.unhealthy ?? []).length) table($('#unhealthy'), d.unhealthy, [
     { key: 'name', label: 'Resource' },
     { key: 'state', label: 'State', render: (v) => badge(v) },

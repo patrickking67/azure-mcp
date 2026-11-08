@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Report a security problem
+    url: https://github.com/patrickking67/azure-mcp/security/advisories/new
+    about: A way around the gates, the CLI policy or the remote auth. Please report it privately.

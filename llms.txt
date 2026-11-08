@@ -1,0 +1,28 @@
+# azure-mcp
+
+> A TypeScript MCP server for Microsoft Azure and Entra ID (server name "Azure"). It exposes 102 tools: reads, writes behind AZURE_MODE=write plus confirm: true, destructive actions that also need AZURE_ALLOW_DESTRUCTIVE=true, six MCP Apps views, and the whole Azure CLI through Az_CLI (reads) and Az_CLI_Run, where every az argv is classified as read, write, destructive, credential read or blocked before it runs. It runs over stdio (Claude Code, Claude Desktop .mcpb, Codex) or remotely on Azure Container Apps behind Entra ID. MIT licensed.
+
+## Docs
+
+- [README](https://github.com/patrickking67/azure-mcp/blob/main/README.md): quickstart, safety model, tool list, settings, architecture
+- [AGENTS.md](https://github.com/patrickking67/azure-mcp/blob/main/AGENTS.md): layout, exact build and test commands, security rules for contributors and agents
+- [Remote deployment](https://github.com/patrickking67/azure-mcp/blob/main/docs/remote.md): Container Apps, Entra app roles, on-behalf-of, rollback
+- [SECURITY.md](https://github.com/patrickking67/azure-mcp/blob/main/SECURITY.md): scope and private reporting
+- [CONTRIBUTING.md](https://github.com/patrickking67/azure-mcp/blob/main/CONTRIBUTING.md): setup, branches, PR checklist
+- [CHANGELOG.md](https://github.com/patrickking67/azure-mcp/blob/main/CHANGELOG.md): release history
+
+## Source
+
+- [CLI policy classifier](https://github.com/patrickking67/azure-mcp/blob/main/src/cli-policy.ts): how every az command is tiered
+- [Write gates](https://github.com/patrickking67/azure-mcp/blob/main/src/gate.ts): the two operator gates and confirm
+- [Tool registration](https://github.com/patrickking67/azure-mcp/blob/main/src/tools/define.ts): defineTool, which applies tier, gate and annotations
+- [Azure CLI tools](https://github.com/patrickking67/azure-mcp/blob/main/src/tools/cli.ts): Az_CLI, Az_CLI_Run, Az_CLI_Help
+- [MCP Apps views](https://github.com/patrickking67/azure-mcp/blob/main/src/apps/shell.ts): the shared view shell
+- [Classifier tests](https://github.com/patrickking67/azure-mcp/blob/main/test/cli-policy.test.mjs): bypasses that must stay closed
+
+## Optional
+
+- [Claude Code plugin](https://github.com/patrickking67/azure-mcp/blob/main/plugin/skills/azure/SKILL.md): the bundled skill and how it picks tools
+- [Desktop bundle manifest](https://github.com/patrickking67/azure-mcp/blob/main/manifest.json): .mcpb settings and tool list
+- [Upstream doc indexes](https://github.com/patrickking67/azure-mcp/blob/main/docs/llms-txt-sources.md): MCP, Azure, Claude Code llms.txt links
+- [Repository](https://github.com/patrickking67/azure-mcp)

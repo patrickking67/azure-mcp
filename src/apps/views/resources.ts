@@ -25,7 +25,7 @@ export function registerResourceView(server: McpServer): void {
     invoked: "Resources ready",
     page: {
       title: "Azure Resources",
-      css: `.detail { margin-top:10px; } .detail pre { max-height:360px; overflow:auto; background:var(--card); border:1px solid var(--line); border-radius:var(--radius); padding:10px; margin:6px 0 0; white-space:pre-wrap; word-break:break-all; } td .link { color:var(--accent); cursor:pointer; text-decoration:underline; }`,
+      css: `.detail { margin-top:10px; } .detail pre { max-height:360px; overflow:auto; background:var(--card); border:1px solid var(--line); border-radius:var(--radius); padding:10px; margin:6px 0 0; white-space:pre-wrap; word-break:break-all; } `,
       script: `
 boot((root, view) => {
   const d = view.data;
@@ -33,7 +33,7 @@ boot((root, view) => {
   const types = [...new Set(rows.map((r) => r.type))].sort();
   root.innerHTML = '<h1>Resources <span class="badge">' + rows.length + '</span>' + (d.truncated ? ' <span class="badge warn">truncated</span>' : '') + '</h1><div id="list"></div><div class="detail" id="detail"></div>';
   const t = table($('#list'), rows, [
-    { key: 'name', label: 'Name', render: (v, r) => '<span class="link" data-open="' + esc(r.id) + '">' + esc(v) + '</span>' },
+    { key: 'name', label: 'Name', render: (v, r) => '<button type="button" class="link" data-open="' + esc(r.id) + '" aria-label="Show the ARM document for ' + esc(v) + '">' + esc(v) + '</button>' },
     { key: 'type', label: 'Type', render: (v) => '<span class="mono">' + esc(v) + '</span>' },
     { key: 'location', label: 'Region' },
     { key: 'resource_group', label: 'Resource group' },
@@ -41,7 +41,8 @@ boot((root, view) => {
     { key: 'tags', label: 'Tags', render: (v) => v ? Object.entries(v).slice(0, 3).map(([k, x]) => '<span class="badge">' + esc(k) + '=' + esc(x) + '</span>').join(' ') : '<span class="muted">—</span>' },
   ], {
     placeholder: 'Filter resources…',
-    toolbar: '<select id="type"><option value="">All types (' + types.length + ')</option>' + types.map((x) => '<option>' + esc(x) + '</option>').join('') + '</select>',
+    empty: 'No resources match this scope. Check the subscription, resource group or type filter.',
+    toolbar: '<select id="type" aria-label="Resource type"><option value="">All types (' + types.length + ')</option>' + types.map((x) => '<option>' + esc(x) + '</option>').join('') + '</select>',
     onDraw: (el) => {
       const sel = $('#type', el);
       sel.value = view.typeFilter ?? '';
@@ -53,7 +54,7 @@ boot((root, view) => {
           const doc = await view.call('Get_Resource', { resource_id: a.dataset.open });
           detail.innerHTML = '<h2>' + esc(a.textContent) + '</h2><div class="mono muted">' + esc(a.dataset.open) + '</div><pre></pre>';
           $('pre', detail).textContent = JSON.stringify(doc, null, 2);
-        } catch (e) { detail.innerHTML = '<div class="error">' + esc(e.message) + '</div>'; }
+        } catch (e) { detail.innerHTML = errorBox(e.message, 'Could not read this resource.'); }
       }; });
     },
   });

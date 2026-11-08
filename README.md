@@ -1,6 +1,6 @@
 # azure-mcp (server name: "Azure")
 
-[![CI](https://github.com/patrickking67/azure-mcp/actions/workflows/ci.yml/badge.svg)](https://github.com/patrickking67/azure-mcp/actions/workflows/ci.yml)
+[![CI](https://github.com/patrickking67/azure-mcp/actions/workflows/ci.yml/badge.svg)](https://github.com/patrickking67/azure-mcp/actions/workflows/ci.yml) [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
 An MCP server for **Microsoft Azure and Entra ID** that gives a model the whole Azure CLI, one command to one tool call, without giving it the keys to everything. Every `az` command is classified before it runs ([src/cli-policy.ts](src/cli-policy.ts)) into read, write or destructive, and each tier sits behind its own operator-controlled gate, so the server starts read-only and a delete needs two settings and an explicit `confirm`. On top of that come 102 tools in all, six MCP Apps views that render inside the chat (estate, VMs, web apps, costs, resources, security), and two ways to run it: local stdio, or remote on Azure Container Apps behind Entra ID where every call runs as the signed-in user.
 
@@ -74,10 +74,11 @@ The design assumes the model will sometimes be wrong or be talked into something
 
 - Command words are lowercased like the CLI does (`vm DELETE` is a delete), and non-ASCII command words are refused, because Python folds some lookalikes (the Kelvin sign) into ASCII letters.
 - Long options match their abbreviations (`--mo Complete` is `--mode Complete`), and every occurrence of a repeated option is checked, because argparse keeps the last one.
-- Reads that return credentials (keys, secrets, connection strings, SAS, passwords, app settings, publishing profiles, `--show-values`) are write-tier, so a key never lands in a transcript from the ungated read tool.
+- Global options (`--only-show-errors`, `--verbose`, `-o`, `--query`) and `--` between command words do not end the command, so `account --only-show-errors get-access-token` is still refused.
+- Reads that return credentials (keys, secrets, connection strings, SAS, passwords, app settings, publishing profiles, App Service auth settings and backup URLs, `--show-values`, `--resolve-keyvault`) are write-tier, so a key never lands in a transcript from the ungated read tool.
 - Complete-mode deployments, stacks that delete on unmanage, `resize`, `generalize`, `scale`, `run-command` and `command invoke` need the destructive gate.
 
-**Always refused**, whatever the gates: `login`, `account set`, `account get-access-token`, `config`, `extension add`, `upgrade`, interactive sessions (`ssh`, `exec`, `log tail`), `--debug`, and anything that reaches local files: `@file` arguments, `~`, absolute, `..` and Windows paths, `file:` URLs, path flags such as `--file` and `--template-file`, commands that upload the working directory (`webapp up`), and `get-credentials`, which writes a kubeconfig. The CLI runs in an empty temporary directory, so a relative path reaches nothing. `az rest` accepts a fixed flag set, each flag once, and only `https` URLs on exactly management.azure.com, graph.microsoft.com, api.loganalytics.io and `*.vault.azure.net`, written plainly (no userinfo, port, backslash, whitespace or encoding tricks). Arguments are passed as an argv array; nothing goes through a shell.
+**Always refused**, whatever the gates: `login`, `account set`, `account get-access-token`, `config`, `extension add`, `upgrade`, interactive sessions (`ssh`, `exec`, `log tail`), `--debug`, and anything that reaches local files: `@file` arguments, `~`, absolute, `..` and Windows paths, `file:` URLs, path flags such as `--file` and `--template-file`, commands that upload the working directory (`webapp up`), `get-credentials` and `connectedk8s proxy`, which write a kubeconfig, `--generate-ssh-keys`, which writes into `~/.ssh`, and `browse`, which opens a browser. The CLI runs in an empty temporary directory, so a relative path reaches nothing. `az rest` accepts a fixed flag set, each flag once, and only `https` URLs on exactly management.azure.com, graph.microsoft.com, api.loganalytics.io and `*.vault.azure.net`, written plainly (no userinfo, port, backslash, whitespace or encoding tricks). Arguments are passed as an argv array; nothing goes through a shell.
 
 Found a way around any of this? See [SECURITY.md](SECURITY.md).
 
@@ -175,8 +176,9 @@ MCP client --HTTPS--> src/remote.ts -+                    src/apps/*   (MCP Apps
 
 ```bash
 npm ci
+npm run check          # everything CI runs: type check, tests, manifest check
 npm test               # build + plugin bundle check + CLI policy + stdio smoke (fake az) + remote transport
-npm run check          # type check
+npm run typecheck      # type check only
 npm run manifest:check # manifest.json lists every tool
 npm run manifest       # rewrite manifest.json tools from the running server
 npm run plugin:build   # rebuild plugin/server/azure-mcp.mjs after changing src/
@@ -184,7 +186,7 @@ npm run apps:runtime   # re-inline the ext-apps browser runtime after upgrading 
 npx @modelcontextprotocol/inspector node dist/index.js
 ```
 
-See [CONTRIBUTING.md](CONTRIBUTING.md).
+Tests never call Azure: the stdio smoke test drives the server with a fake `az` ([test/fixtures/fake-az.mjs](test/fixtures/fake-az.mjs)). See [CONTRIBUTING.md](CONTRIBUTING.md), and [AGENTS.md](AGENTS.md) for the layout and the rules a coding agent follows here. Changes are listed in [CHANGELOG.md](CHANGELOG.md).
 
 ## License
 

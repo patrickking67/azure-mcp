@@ -36,18 +36,18 @@ boot((root, view) => {
     { key: 'percentage', label: 'Score', render: (v) => bar(v) },
     { key: 'unhealthy', label: 'Unhealthy resources' },
     { key: 'potential', label: 'Points to gain' },
-  ], { sortKey: 'potential', asc: false, placeholder: 'Filter controls…' });
+  ], { sortKey: 'potential', asc: false, placeholder: 'Filter controls…', empty: 'No secure score controls. Defender for Cloud may not be enabled on this subscription.' });
   table($('#alerts'), d.alerts ?? [], [
     { key: 'severity', label: 'Severity', render: (v) => badge(v) },
     { key: 'name', label: 'Alert' },
     { key: 'entity', label: 'Entity' },
     { key: 'time', label: 'When', render: (v) => esc(fmtAgo(v)) },
-  ], { sortKey: 'time', asc: false, placeholder: 'Filter alerts…' });
+  ], { sortKey: 'time', asc: false, placeholder: 'Filter alerts…', empty: 'No active Defender alerts.' });
   table($('#advisor'), d.advisor ?? [], [
     { key: 'impact', label: 'Impact', render: (v) => badge(v) },
     { key: 'problem', label: 'Problem' },
     { key: 'resource', label: 'Resource' },
-  ], { placeholder: 'Filter recommendations…' });
+  ], { placeholder: 'Filter recommendations…', empty: 'No Advisor security recommendations.' });
 });
 `,
     },

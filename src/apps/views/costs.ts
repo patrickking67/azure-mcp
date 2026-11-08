@@ -40,14 +40,16 @@ boot((root, view) => {
     + '<div class="card"><div class="title">Daily average</div><div class="big">' + fmtMoney((d.daily ?? []).length ? d.total / d.daily.length : null, cur) + '</div><div class="meta">' + (d.daily ?? []).length + ' days</div></div>'
     + '<div class="card"><div class="title">Top service</div><div class="big" style="font-size:16px">' + esc(d.by_service?.[0]?.service ?? '—') + '</div><div class="meta">' + fmtMoney(d.by_service?.[0]?.cost, cur) + '</div></div>'
     + '</div>'
-    + '<h2>Daily</h2><div class="card"><div class="spark">' + (d.daily ?? []).map((x) => '<i title="' + esc(x.date + ': ' + fmtMoney(x.cost, cur)) + '" style="height:' + Math.max(1, Math.round(100 * x.cost / maxDay)) + '%"></i>').join('') + '</div></div>'
+    + '<h2>Daily</h2>' + ((d.daily ?? []).length
+      ? '<div class="card"><div class="spark" role="img" aria-label="' + esc('Daily cost for ' + d.daily.length + ' days, highest ' + fmtMoney(maxDay, cur)) + '">' + d.daily.map((x) => '<i title="' + esc(x.date + ': ' + fmtMoney(x.cost, cur)) + '" style="height:' + Math.max(1, Math.round(100 * x.cost / maxDay)) + '%"></i>').join('') + '</div></div>'
+      : emptyBox('No daily cost data for this period yet.'))
     + '<h2>By service</h2><div id="svc"></div><h2>By resource group</h2><div id="rg"></div>'
     + ((d.budgets ?? []).length ? '<h2>Budgets</h2><div id="budgets"></div>' : '')
     + ((d.notes ?? []).length ? '<div class="status" style="margin-top:8px">Partial data: ' + d.notes.map(esc).join('<br>') + '</div>' : '');
   const money = (v) => fmtMoney(v, cur);
   const share = (rows) => { const max = Math.max(0.01, ...rows.map((r) => r.cost)); return (v) => '<span class="bar"><i style="width:' + Math.round(100 * v / max) + '%"></i></span>' + money(v); };
-  table($('#svc'), d.by_service ?? [], [{ key: 'service', label: 'Service' }, { key: 'cost', label: 'Cost', render: share(d.by_service ?? []) }], { sortKey: 'cost', asc: false, placeholder: 'Filter services…' });
-  table($('#rg'), d.by_resource_group ?? [], [{ key: 'resource_group', label: 'Resource group' }, { key: 'cost', label: 'Cost', render: share(d.by_resource_group ?? []) }], { sortKey: 'cost', asc: false, placeholder: 'Filter groups…' });
+  table($('#svc'), d.by_service ?? [], [{ key: 'service', label: 'Service' }, { key: 'cost', label: 'Cost', render: share(d.by_service ?? []) }], { sortKey: 'cost', asc: false, placeholder: 'Filter services…', empty: 'No cost by service for this period.' });
+  table($('#rg'), d.by_resource_group ?? [], [{ key: 'resource_group', label: 'Resource group' }, { key: 'cost', label: 'Cost', render: share(d.by_resource_group ?? []) }], { sortKey: 'cost', asc: false, placeholder: 'Filter groups…', empty: 'No cost by resource group for this period.' });
   if ((d.budgets ?? []).length) table($('#budgets'), d.budgets, [
     { key: 'name', label: 'Budget' },
     { key: 'amount', label: 'Amount', render: money },

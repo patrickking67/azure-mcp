@@ -1,0 +1,21 @@
+name: Feature request
+description: A tool, view or setting you want.
+labels: [enhancement]
+body:
+  - type: textarea
+    id: need
+    attributes:
+      label: What you want to do
+      description: The Azure task, and the az command or REST call you use for it today.
+    validations:
+      required: true
+  - type: dropdown
+    id: tier
+    attributes:
+      label: What it does to Azure
+      options:
+        - Reads only
+        - Creates or changes something
+        - Deletes, stops or restarts something
+    validations:
+      required: true

@@ -98,3 +98,20 @@ test("Az_CLI_Help and Status tools answer without Azure", async () => {
   assert.equal(status.gate.mode, "read");
   await c.close();
 });
+
+test("subscription_id cannot smuggle a local file or a flag into the CLI", async () => {
+  const c = await connect({ AZURE_MODE: "write", AZURE_ALLOW_DESTRUCTIVE: "true" });
+  try {
+    for (const subscription_id of ["@/etc/hosts", "--debug", "~/.azure/azureProfile.json"]) {
+      for (const tool of ["Az_CLI", "Az_CLI_Run"]) {
+        const r = await call(c, tool, { args: ["group", "list"], subscription_id, confirm: tool === "Az_CLI_Run" ? true : undefined });
+        assert.equal(r.isError, true, `${tool} ${subscription_id}`);
+        assert.doesNotMatch(text(r), /"argv"/, `${tool} ${subscription_id} must not reach the CLI`);
+      }
+    }
+    const ok = await call(c, "Az_CLI", { args: ["group", "list"], subscription_id: "00000000-0000-0000-0000-000000000000" });
+    assert.equal(ok.isError, undefined, text(ok));
+  } finally {
+    await c.close();
+  }
+});

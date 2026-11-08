@@ -61,7 +61,11 @@ const commandInput = {
     .string()
     .optional()
     .describe('The same as one string, e.g. "vm list -g my-rg --query \\"[].name\\"". A leading "az" is ignored. Quotes group words; nothing is expanded.'),
-  subscription_id: z.string().optional().describe("Adds --subscription <id> when the command does not already carry one. Leave unset for commands without that argument (az ad ...)."),
+  subscription_id: z
+    .string()
+    .regex(/^[^@~\-\s]/, "subscription_id must be a subscription id or name, not a flag, '@file' or path")
+    .optional()
+    .describe("Adds --subscription <id> when the command does not already carry one. Leave unset for commands without that argument (az ad ...)."),
   timeout_seconds: z.number().int().min(5).max(900).optional().describe("Kill the command after this many seconds. Default 120. Prefer --no-wait for long-running operations."),
 };
 
@@ -73,15 +77,26 @@ function argvOf(input: CommandArgs): string[] {
   throw new Error('Pass args (["vm", "list"]) or command ("vm list").');
 }
 
+/** The argv that will actually run, subscription and output added. This, not the caller's argv, is what gets classified. */
+function fullArgv(input: CommandArgs): string[] {
+  const full = argvOf(input);
+  if (input.subscription_id && !hasFlag(full, ["--subscription"])) full.push("--subscription", input.subscription_id);
+  if (!hasFlag(full, ["--output", "-o"])) full.push("--output", "json");
+  return full;
+}
+
+/** Classify the full argv. subscription_id is classified too: the CLI expands '@path' in any value, --subscription included. */
+function classifyInput(input: CommandArgs): Classification {
+  return classify(fullArgv(input));
+}
+
 async function execute(tool: string, input: CommandArgs, check: (c: Classification) => void) {
   const argv = argvOf(input);
-  const classification = classify(argv);
+  const full = fullArgv(input);
+  const classification = classifyInput(input);
   if (classification.blocked) throw new Error(`${tool} refused: ${classification.blocked}. Nothing was run.`);
   check(classification);
   await ensureCliSession();
-  const full = [...argv];
-  if (input.subscription_id && !hasFlag(full, ["--subscription"])) full.push("--subscription", input.subscription_id);
-  if (!hasFlag(full, ["--output", "-o"])) full.push("--output", "json");
   const run = await azRun(full, { timeoutMs: (input.timeout_seconds ?? 120) * 1000, cwd: cliSandboxDir() });
   let output: JsonValue = run.stdout;
   const trimmed = run.stdout.trim();
@@ -140,7 +155,7 @@ export function registerCliTools(server: McpServer): void {
     tier: "destructive",
     // The annotation says destructive because it can be; the gate applied is the command's own tier.
     runtimeTier: (input) => {
-      const c = classify(argvOf(input));
+      const c = classifyInput(input);
       if (c.blocked) throw new Error(`Az_CLI_Run refused: ${c.blocked}. Nothing was run.`);
       return c.tier;
     },
