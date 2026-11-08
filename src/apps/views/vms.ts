@@ -34,7 +34,7 @@ boot((root, view) => {
   root.innerHTML = '<h1>Virtual machines <span class="badge">' + view.rows.length + '</span>'
     + Object.entries(counts).map(([k, n]) => ' ' + badge(k + ' ' + n)).join('')
     + (d.truncated ? ' <span class="badge warn">truncated</span>' : '') + '</h1>'
-    + '<div class="status" id="status"></div><div id="list"></div>';
+    + '<div class="status" id="status" role="status" aria-live="polite"></div><div id="list"></div>';
   const status = $('#status');
   table($('#list'), view.rows, [
     { key: 'name', label: 'Name' },
@@ -43,12 +43,13 @@ boot((root, view) => {
     { key: 'os', label: 'OS' },
     { key: 'location', label: 'Region' },
     { key: 'resource_group', label: 'Resource group' },
-    { key: 'id', label: '', render: (_v, r) => '<span class="actions">'
+    { key: 'id', label: '', cls: 'col-actions', render: (_v, r) => '<span class="actions">'
         + (r.power === 'running' ? actionButton(r, 'deallocate', 'Deallocate') + actionButton(r, 'restart', 'Restart') : actionButton(r, 'start', 'Start'))
         + '</span>' },
   ], {
     placeholder: 'Filter VMs…',
-    toolbar: '<button id="refresh">Refresh</button>',
+    toolbar: '<button type="button" id="refresh">Refresh</button>',
+    empty: 'No virtual machines in this subscription' + (view.input.resource_group ? ' and resource group ' + view.input.resource_group : '') + '.',
     onDraw: (el) => {
       wireActions(el, view, (a) => ({ start: 'Start_VM', deallocate: 'Stop_VM', restart: 'Restart_VM' })[a], (r) => ({ subscription_id: r.subscription_id, resource_group: r.resource_group, vm_name: r.name }), status);
       $('#refresh', el).onclick = () => refresh(view, 'View_Virtual_Machines', status);

@@ -5,7 +5,12 @@
 
 export const ACTION_CSS = `
 .actions button { padding:3px 8px; font-size:12px; margin-right:4px; }
-.actions button.arm { background:var(--bad); color:#fff; border-color:var(--bad); }
+.actions { display:inline-flex; gap:4px; }
+/* The action column stays in view when a wide table scrolls sideways. */
+td.col-actions, th.col-actions { position:sticky; right:0; box-shadow:-1px 0 0 var(--line); }
+td.col-actions { background:var(--bg); } th.col-actions { z-index:2; }
+.actions button { margin-right:0; }
+.actions button.arm { background:var(--bad); color:var(--on-bad); border-color:var(--bad); }
 `;
 
 export const ACTION_JS = `
@@ -14,7 +19,8 @@ function wireActions(root, view, toolFor, argsFor, statusEl) {
     b.onclick = async () => {
       if (!b.classList.contains('arm')) {
         root.querySelectorAll('button.arm').forEach((o) => { o.classList.remove('arm'); o.textContent = o.dataset.label; });
-        b.classList.add('arm'); b.textContent = 'Confirm ' + b.dataset.label.toLowerCase(); return;
+        b.classList.add('arm'); b.textContent = 'Confirm ' + b.dataset.label.toLowerCase();
+        statusEl.textContent = 'Click again to ' + b.dataset.label.toLowerCase() + ' ' + b.dataset.name + '. Any other button cancels.'; return;
       }
       b.disabled = true; b.textContent = b.dataset.label + '…';
       const row = view.rows.find((r) => r.id === b.dataset.id);
@@ -22,17 +28,17 @@ function wireActions(root, view, toolFor, argsFor, statusEl) {
         const out = await view.call(toolFor(b.dataset.action), { ...argsFor(row), confirm: true });
         statusEl.innerHTML = '<span class="badge ok">' + esc(b.dataset.label) + ' accepted</span> ' + esc(row.name) + (out && out.note ? ' · ' + esc(out.note) : '') + ' · refresh in a minute to see the new state.';
       } catch (e) {
-        statusEl.innerHTML = '<span class="error">' + esc(e.message) + '</span>';
+        statusEl.innerHTML = errorBox(e.message, b.dataset.label + ' was refused. Nothing was changed.');
       }
       b.disabled = false; b.classList.remove('arm'); b.textContent = b.dataset.label;
     };
   });
 }
 function actionButton(row, action, label) {
-  return '<button data-action="' + esc(action) + '" data-id="' + esc(row.id) + '" data-label="' + esc(label) + '">' + esc(label) + '</button>';
+  return '<button type="button" data-action="' + esc(action) + '" data-id="' + esc(row.id) + '" data-name="' + esc(row.name) + '" data-label="' + esc(label) + '" aria-label="' + esc(label + ' ' + row.name) + '">' + esc(label) + '</button>';
 }
 async function refresh(view, tool, statusEl) {
   statusEl.textContent = 'Refreshing…';
-  try { view.data = await view.call(tool, view.input); view.redraw(); } catch (e) { statusEl.innerHTML = '<span class="error">' + esc(e.message) + '</span>'; }
+  try { view.data = await view.call(tool, view.input); view.redraw(); } catch (e) { statusEl.innerHTML = errorBox(e.message, 'Refresh failed. The table shows the last result.'); }
 }
 `;

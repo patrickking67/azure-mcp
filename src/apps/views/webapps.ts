@@ -31,7 +31,7 @@ boot((root, view) => {
   view.rows = d.web_apps ?? [];
   const stopped = view.rows.filter((r) => String(r.state).toLowerCase() !== 'running').length;
   root.innerHTML = '<h1>Web apps <span class="badge">' + view.rows.length + '</span>' + (stopped ? ' <span class="badge warn">' + stopped + ' not running</span>' : '') + '</h1>'
-    + '<div class="status" id="status"></div><div id="list"></div>';
+    + '<div class="status" id="status" role="status" aria-live="polite"></div><div id="list"></div>';
   const status = $('#status');
   table($('#list'), view.rows, [
     { key: 'name', label: 'Name' },
@@ -41,12 +41,13 @@ boot((root, view) => {
     { key: 'https_only', label: 'HTTPS only', render: (v) => badge(v ? 'true' : 'false') },
     { key: 'location', label: 'Region' },
     { key: 'resource_group', label: 'Resource group' },
-    { key: 'id', label: '', render: (_v, r) => '<span class="actions">'
+    { key: 'id', label: '', cls: 'col-actions', render: (_v, r) => '<span class="actions">'
         + (String(r.state).toLowerCase() === 'running' ? actionButton(r, 'stop', 'Stop') + actionButton(r, 'restart', 'Restart') : actionButton(r, 'start', 'Start'))
         + '</span>' },
   ], {
     placeholder: 'Filter apps…',
-    toolbar: '<button id="refresh">Refresh</button>',
+    toolbar: '<button type="button" id="refresh">Refresh</button>',
+    empty: 'No web apps in this subscription' + (view.input.resource_group ? ' and resource group ' + view.input.resource_group : '') + '.',
     onDraw: (el) => {
       wireActions(el, view, (a) => ({ start: 'Start_Web_App', stop: 'Stop_Web_App', restart: 'Restart_Web_App' })[a], (r) => ({ subscription_id: r.subscription_id, resource_group: r.resource_group, app_name: r.name }), status);
       $('#refresh', el).onclick = () => refresh(view, 'View_Web_Apps', status);
