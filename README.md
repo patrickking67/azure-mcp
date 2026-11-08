@@ -1,6 +1,6 @@
 # azure-mcp (server name: "Azure")
 
-[![CI](https://github.com/patrickking67/azure-mcp/actions/workflows/ci.yml/badge.svg)](https://github.com/patrickking67/azure-mcp/actions/workflows/ci.yml)
+[![CI](https://github.com/patrickking67/azure-mcp/actions/workflows/ci.yml/badge.svg)](https://github.com/patrickking67/azure-mcp/actions/workflows/ci.yml) [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
 An MCP server for **Microsoft Azure and Entra ID** that gives a model the whole Azure CLI, one command to one tool call, without giving it the keys to everything. Every `az` command is classified before it runs ([src/cli-policy.ts](src/cli-policy.ts)) into read, write or destructive, and each tier sits behind its own operator-controlled gate, so the server starts read-only and a delete needs two settings and an explicit `confirm`. On top of that come 102 tools in all, six MCP Apps views that render inside the chat (estate, VMs, web apps, costs, resources, security), and two ways to run it: local stdio, or remote on Azure Container Apps behind Entra ID where every call runs as the signed-in user.
 
@@ -186,7 +186,7 @@ npm run apps:runtime   # re-inline the ext-apps browser runtime after upgrading 
 npx @modelcontextprotocol/inspector node dist/index.js
 ```
 
-See [CONTRIBUTING.md](CONTRIBUTING.md).
+Tests never call Azure: the stdio smoke test drives the server with a fake `az` ([test/fixtures/fake-az.mjs](test/fixtures/fake-az.mjs)). See [CONTRIBUTING.md](CONTRIBUTING.md), and [AGENTS.md](AGENTS.md) for the layout and the rules a coding agent follows here. Changes are listed in [CHANGELOG.md](CHANGELOG.md).
 
 ## License
 

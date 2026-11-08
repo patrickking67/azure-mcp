@@ -23,7 +23,7 @@ The tests never call Azure: the smoke test points `AZ_PATH` at [test/fixtures/fa
 
 - One logical change per pull request, with a test. A change to [src/cli-policy.ts](src/cli-policy.ts) needs a test in [test/cli-policy.test.mjs](test/cli-policy.test.mjs) that fails without it.
 - New tools register through `defineTool` ([src/tools/define.ts](src/tools/define.ts)) so they get a tier, the gate, `confirm` and their Azure CLI equivalent.
-- After changing `src/`, run `npm run plugin:build` (rebuilds `plugin/server/azure-mcp.mjs`) and `npm run manifest` if the tool list changed. `npm test` fails while either is stale.
+- After changing `src/`, run `npm run plugin:build` (rebuilds `plugin/server/azure-mcp.mjs`) and `npm run manifest` if the tool list changed. `npm run check` fails while either is stale.
 - No new runtime dependencies without discussion first.
 - Never commit tenant ids, subscription ids, resource names from a real environment, or anything from `infra/main.bicepparam` or `.env`. Use `00000000-0000-0000-0000-000000000000` and `contoso.example` in examples.
 - Tests never call Azure. Do not run the server against a real subscription while developing; the fake CLI covers the tool paths.
