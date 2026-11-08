@@ -39466,7 +39466,7 @@ function ensureCliSession() {
 var commandInput = {
   args: external_exports.array(external_exports.string()).optional().describe('The words after "az", one per element, e.g. ["vm", "list", "-g", "my-rg"]. Preferred over command: no quoting needed.'),
   command: external_exports.string().optional().describe('The same as one string, e.g. "vm list -g my-rg --query \\"[].name\\"". A leading "az" is ignored. Quotes group words; nothing is expanded.'),
-  subscription_id: external_exports.string().optional().describe("Adds --subscription <id> when the command does not already carry one. Leave unset for commands without that argument (az ad ...)."),
+  subscription_id: external_exports.string().regex(/^[^@~\-\s]/, "subscription_id must be a subscription id or name, not a flag, '@file' or path").optional().describe("Adds --subscription <id> when the command does not already carry one. Leave unset for commands without that argument (az ad ...)."),
   timeout_seconds: external_exports.number().int().min(5).max(900).optional().describe("Kill the command after this many seconds. Default 120. Prefer --no-wait for long-running operations.")
 };
 function argvOf(input2) {
@@ -39476,18 +39476,25 @@ function argvOf(input2) {
     return splitCommand(input2.command);
   throw new Error('Pass args (["vm", "list"]) or command ("vm list").');
 }
-async function execute(tool, input2, check2) {
-  const argv = argvOf(input2);
-  const classification = classify(argv);
-  if (classification.blocked)
-    throw new Error(`${tool} refused: ${classification.blocked}. Nothing was run.`);
-  check2(classification);
-  await ensureCliSession();
-  const full = [...argv];
+function fullArgv(input2) {
+  const full = argvOf(input2);
   if (input2.subscription_id && !hasFlag(full, ["--subscription"]))
     full.push("--subscription", input2.subscription_id);
   if (!hasFlag(full, ["--output", "-o"]))
     full.push("--output", "json");
+  return full;
+}
+function classifyInput(input2) {
+  return classify(fullArgv(input2));
+}
+async function execute(tool, input2, check2) {
+  const argv = argvOf(input2);
+  const full = fullArgv(input2);
+  const classification = classifyInput(input2);
+  if (classification.blocked)
+    throw new Error(`${tool} refused: ${classification.blocked}. Nothing was run.`);
+  check2(classification);
+  await ensureCliSession();
   const run = await azRun(full, { timeoutMs: (input2.timeout_seconds ?? 120) * 1e3, cwd: cliSandboxDir() });
   let output2 = run.stdout;
   const trimmed = run.stdout.trim();
@@ -39538,7 +39545,7 @@ function registerCliTools(server) {
     tier: "destructive",
     // The annotation says destructive because it can be; the gate applied is the command's own tier.
     runtimeTier: (input2) => {
-      const c = classify(argvOf(input2));
+      const c = classifyInput(input2);
       if (c.blocked)
         throw new Error(`Az_CLI_Run refused: ${c.blocked}. Nothing was run.`);
       return c.tier;
