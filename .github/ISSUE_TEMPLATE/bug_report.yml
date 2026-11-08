@@ -1,0 +1,40 @@
+name: Bug report
+description: Something does not work as documented.
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        A way around the write gates or the CLI policy is a security issue. Report it privately instead:
+        https://github.com/patrickking67/azure-mcp/security/advisories/new
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: The tool call or az argv, what you expected, and what you got. Remove ids and names from your environment.
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Server version
+      description: From Status_Server.
+    validations:
+      required: true
+  - type: dropdown
+    id: transport
+    attributes:
+      label: How you run it
+      options:
+        - Claude Code plugin
+        - Claude Desktop (.mcpb)
+        - Codex or ChatGPT desktop plugin
+        - From a clone (stdio)
+        - Remote (Container Apps)
+    validations:
+      required: true
+  - type: input
+    id: az
+    attributes:
+      label: Azure CLI version
+      description: From `az version`, if the problem involves Az_CLI.
