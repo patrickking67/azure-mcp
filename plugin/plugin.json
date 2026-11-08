@@ -9,7 +9,7 @@
   },
   "homepage": "https://github.com/patrickking67/azure-mcp",
   "repository": "https://github.com/patrickking67/azure-mcp",
-  "license": "UNLICENSED",
+  "license": "MIT",
   "keywords": [
     "azure",
     "entra",
