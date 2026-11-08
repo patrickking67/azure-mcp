@@ -1,0 +1,11 @@
+* text=auto eol=lf
+
+*.png binary
+*.jpg binary
+*.ico binary
+*.mcpb binary
+*.zip binary
+
+# Build output kept in git so the plugin installs without npm. Regenerate with npm run plugin:build / apps:runtime.
+plugin/server/azure-mcp.mjs linguist-generated=true
+src/apps/generated/** linguist-generated=true
