@@ -39174,6 +39174,7 @@ var LOCAL_UPLOAD_COMMANDS = [
   ["containerapp up", "uploads the current directory"],
   ["staticwebapp deploy", "uploads a local directory"]
 ];
+var LOCAL_WRITE_VERBS = [["get-credentials", "writes a kubeconfig into the home directory on this machine"]];
 var ARM_ID = /^\/(subscriptions|providers|tenants)([/?]|$)/i;
 var URL_FLAGS = ["--url", "--uri", "-u"];
 function localPathArgument(args) {
@@ -39192,7 +39193,7 @@ function localPathArgument(args) {
       continue;
     if (value === "/" || ARM_ID.test(value))
       continue;
-    if (value === "." || value === ".." || /^(\/|\.\.?\/|~|\.\.?\\)/.test(value) || /^[A-Za-z]:[\\/]/.test(value))
+    if (value === "." || value === ".." || /^(\/|\.\.?\/|~|\.\.?\\|\\)/.test(value) || /^[A-Za-z]:[\\/]/.test(value))
       return value;
     if (/(^|[\\/])\.\.([\\/]|$)/.test(value))
       return value;
@@ -39233,6 +39234,25 @@ function commandPath(args) {
 function hasFlag(args, names) {
   return args.some((arg) => names.some((name) => arg === name || arg.startsWith(`${name}=`)));
 }
+function matchesLongFlag(arg, name) {
+  if (!arg.startsWith("--") || arg === "--")
+    return false;
+  const given = arg.includes("=") ? arg.slice(0, arg.indexOf("=")) : arg;
+  return given.length > 2 && name.startsWith(given);
+}
+function hasFlagOrPrefix(args, names) {
+  return args.some((arg) => names.some((name) => matchesLongFlag(arg, name)));
+}
+function flagValues(args, names) {
+  const values = [];
+  for (let i = 0; i < args.length; i += 1) {
+    const arg = args[i];
+    if (!names.some((name) => matchesLongFlag(arg, name)))
+      continue;
+    values.push(arg.includes("=") ? arg.slice(arg.indexOf("=") + 1) : args[i + 1] ?? "");
+  }
+  return values;
+}
 function verbTier(verb) {
   if (READ_VERBS.has(verb) || READ_PREFIXES.some((p2) => verb.startsWith(p2)))
     return "read";
@@ -39261,13 +39281,17 @@ function parseRest(args) {
   return seen;
 }
 function classify(args) {
-  const path = commandPath(args);
+  const rawPath = commandPath(args);
+  const path = rawPath.map((word) => word.toLowerCase());
   const verb = path.at(-1) ?? "";
   const joined = path.join(" ");
   const flags = args.slice(path.length);
   const result = (tier2, sensitive2 = false, blocked) => ({ path, verb, tier: tier2, sensitive: sensitive2, ...blocked ? { blocked } : {} });
   if (path.length === 0)
     return result("read", false, `no command given; pass the words after 'az', e.g. ["vm", "list"]`);
+  const nonAscii = rawPath.find((word) => /[^\x20-\x7e]/.test(word));
+  if (nonAscii !== void 0)
+    return result("write", false, `command word '${nonAscii}' is not plain ASCII; Azure CLI command names never are`);
   for (const [prefix, reason] of BLOCKED_PREFIXES) {
     if (joined === prefix || joined.startsWith(`${prefix} `))
       return result("write", false, `'az ${prefix}' ${reason}`);
@@ -39278,7 +39302,7 @@ function classify(args) {
     if (arg.startsWith("~"))
       return result("write", false, `argument '${arg}' is a path in the home directory; local files are not reachable from these tools`);
   }
-  if (hasFlag(flags, ["--debug"]))
+  if (hasFlagOrPrefix(flags, ["--debug"]))
     return result("write", false, "--debug can print request details; use --verbose");
   const local = localPathArgument(args);
   if (local)
@@ -39286,6 +39310,10 @@ function classify(args) {
   for (const [prefix, reason] of LOCAL_UPLOAD_COMMANDS) {
     if (joined === prefix || joined.startsWith(`${prefix} `))
       return result("write", false, `'az ${prefix}' ${reason}`);
+  }
+  for (const [name, reason] of LOCAL_WRITE_VERBS) {
+    if (verb === name)
+      return result("write", false, `'az ${joined}' ${reason}`);
   }
   const pathFlag = LOCAL_PATH_FLAGS.find((name) => hasFlag(flags, [name]) || !name.startsWith("--") && flags.some((a) => a.startsWith(name) && !a.startsWith("--")));
   if (pathFlag)
@@ -39297,6 +39325,10 @@ function classify(args) {
     const url2 = rest.url;
     if (!url2)
       return result("read", false, "az rest needs --url");
+    if (/[^\x21-\x7e]|\\/.test(url2))
+      return result("read", false, "az rest --url may only contain printable ASCII without spaces or backslashes");
+    if (url2.startsWith("/") && url2.includes("://"))
+      return result("read", false, "az rest --url starting with '/' must not contain '://'");
     if (!url2.startsWith("/") || url2.startsWith("//")) {
       let parsed;
       try {
@@ -39304,7 +39336,8 @@ function classify(args) {
       } catch {
         return result("read", false, `az rest --url '${url2}' is not a URL`);
       }
-      if (parsed.protocol !== "https:" || parsed.username || parsed.password || parsed.port || !REST_HOSTS.some((re) => re.test(parsed.hostname))) {
+      const written = /^https:\/\/([^/?#]*)/i.exec(url2)?.[1]?.toLowerCase();
+      if (parsed.protocol !== "https:" || parsed.username || parsed.password || parsed.port || written !== parsed.hostname || !REST_HOSTS.some((re) => re.test(parsed.hostname))) {
         return result("read", false, `az rest may only call management.azure.com, graph.microsoft.com, api.loganalytics.io or a vault.azure.net vault over https, not ${parsed.host || url2}`);
       }
     }
@@ -39320,17 +39353,13 @@ function classify(args) {
   let tier = verbTier(verb);
   if (tier !== "read" && path.slice(0, -1).some((token) => DESTRUCTIVE_GROUPS.has(token)))
     tier = "destructive";
-  const unmanage = args.findIndex((a) => a === "--action-on-unmanage" || a.startsWith("--action-on-unmanage=") || a === "--aou" || a.startsWith("--aou="));
-  const unmanageValue = unmanage < 0 ? "" : args[unmanage].includes("=") ? args[unmanage].split("=")[1] : args[unmanage + 1] ?? "";
-  if (/^delete/i.test(unmanageValue))
+  if (flagValues(flags, ["--action-on-unmanage", "--aou"]).some((value) => /^delete/i.test(value)))
     tier = "destructive";
-  const mode = args.findIndex((a) => a === "--mode" || a.startsWith("--mode="));
-  const modeValue = mode < 0 ? "" : args[mode].includes("=") ? args[mode].split("=")[1] : args[mode + 1] ?? "";
-  if (path[0] === "deployment" && modeValue.toLowerCase() === "complete")
+  if (path[0] === "deployment" && flagValues(flags, ["--mode"]).some((value) => value.toLowerCase() === "complete"))
     tier = "destructive";
   if (verb === "download" && tier === "read")
     tier = "write";
-  const sensitive = path.some((token) => SENSITIVE_TOKEN.test(token)) && !NOT_SENSITIVE.test(joined) || SENSITIVE_PATHS.some((re) => re.test(joined)) || hasFlag(flags, SENSITIVE_FLAGS);
+  const sensitive = path.some((token) => SENSITIVE_TOKEN.test(token)) && !NOT_SENSITIVE.test(joined) || SENSITIVE_PATHS.some((re) => re.test(joined)) || hasFlagOrPrefix(flags, SENSITIVE_FLAGS);
   if (sensitive && tier === "read")
     tier = "write";
   return result(tier, sensitive);

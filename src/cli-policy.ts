@@ -21,6 +21,15 @@
 // '@path' as "the contents of this file"), a '~' path, and flags that take a local path (--file,
 // --template-file, --output-file, ...) are refused, so a prompt-injected command can neither upload a
 // local file nor overwrite one. az rest is parsed strictly and may only reach Azure's own hosts.
+//
+// The classifier reads argv the way the CLI does, not the way it looks:
+//
+//   - command words are case-insensitive (knack lowercases them with Python's str.lower(), which also
+//     folds some non-ASCII letters such as the Kelvin sign into ASCII), so they are lowercased here and
+//     anything that is not plain ASCII is refused;
+//   - argparse accepts any unambiguous prefix of a long option (--mo for --mode), so a flag the policy
+//     reacts to also matches its prefixes;
+//   - argparse keeps the last of a repeated option, so every occurrence of such a flag is checked.
 
 import { existsSync } from "node:fs";
 import { resolve } from "node:path";
@@ -114,6 +123,8 @@ const LOCAL_UPLOAD_COMMANDS: [string, string][] = [
   ["containerapp up", "uploads the current directory"],
   ["staticwebapp deploy", "uploads a local directory"],
 ];
+// Verbs that write into the home directory without naming a path (aks / fleet get-credentials merge into ~/.kube/config).
+const LOCAL_WRITE_VERBS: [string, string][] = [["get-credentials", "writes a kubeconfig into the home directory on this machine"]];
 
 const ARM_ID = /^\/(subscriptions|providers|tenants)([/?]|$)/i;
 const URL_FLAGS = ["--url", "--uri", "-u"];
@@ -136,7 +147,8 @@ export function localPathArgument(args: string[]): string | undefined {
     if (URL_FLAGS.includes(args[i - 1] ?? "") || URL_FLAGS.some((f) => raw.startsWith(`${f}=`))) continue;
     if (/^[a-z][a-z0-9+.-]*:\/\//i.test(value)) continue;
     if (value === "/" || ARM_ID.test(value)) continue;
-    if (value === "." || value === ".." || /^(\/|\.\.?\/|~|\.\.?\\)/.test(value) || /^[A-Za-z]:[\\/]/.test(value)) return value;
+    // Windows forms too: C:\x, \x (root of the current drive) and \\server\share.
+    if (value === "." || value === ".." || /^(\/|\.\.?\/|~|\.\.?\\|\\)/.test(value) || /^[A-Za-z]:[\\/]/.test(value)) return value;
     // A '..' segment anywhere climbs out of the sandbox directory once the path is normalised (x/../../Users/me).
     if (/(^|[\\/])\.\.([\\/]|$)/.test(value)) return value;
     if (/[./\\]/.test(value) && value.length < 1024) {
@@ -172,6 +184,29 @@ export function hasFlag(args: string[], names: string[]): boolean {
   return args.some((arg) => names.some((name) => arg === name || arg.startsWith(`${name}=`)));
 }
 
+/** True when `arg` (a long option, with or without '=value') is `name` or a prefix argparse would expand to it. */
+function matchesLongFlag(arg: string, name: string): boolean {
+  if (!arg.startsWith("--") || arg === "--") return false;
+  const given = arg.includes("=") ? arg.slice(0, arg.indexOf("=")) : arg;
+  return given.length > 2 && name.startsWith(given);
+}
+
+/** Like hasFlag, but also counts abbreviations (--show-v for --show-values). */
+function hasFlagOrPrefix(args: string[], names: string[]): boolean {
+  return args.some((arg) => names.some((name) => matchesLongFlag(arg, name)));
+}
+
+/** Every value given for a long option or its abbreviations, in order: argparse keeps the last one, so all of them matter. */
+function flagValues(args: string[], names: string[]): string[] {
+  const values: string[] = [];
+  for (let i = 0; i < args.length; i += 1) {
+    const arg = args[i];
+    if (!names.some((name) => matchesLongFlag(arg, name))) continue;
+    values.push(arg.includes("=") ? arg.slice(arg.indexOf("=") + 1) : (args[i + 1] ?? ""));
+  }
+  return values;
+}
+
 function verbTier(verb: string): Tier {
   if (READ_VERBS.has(verb) || READ_PREFIXES.some((p) => verb.startsWith(p))) return "read";
   if (DESTRUCTIVE_VERBS.has(verb) || DESTRUCTIVE_PREFIXES.some((p) => verb.startsWith(p))) return "destructive";
@@ -197,13 +232,19 @@ function parseRest(args: string[]): Record<string, string> | string {
 }
 
 export function classify(args: string[]): Classification {
-  const path = commandPath(args);
+  const rawPath = commandPath(args);
+  // The CLI lowercases command words before matching them, so "vm DELETE" is "vm delete" and "ACCOUNT get-access-token" is blocked.
+  const path = rawPath.map((word) => word.toLowerCase());
   const verb = path.at(-1) ?? "";
   const joined = path.join(" ");
   const flags = args.slice(path.length);
   const result = (tier: Tier, sensitive = false, blocked?: string): Classification => ({ path, verb, tier, sensitive, ...(blocked ? { blocked } : {}) });
 
   if (path.length === 0) return result("read", false, "no command given; pass the words after 'az', e.g. [\"vm\", \"list\"]");
+  // Python's str.lower() folds some non-ASCII letters into ASCII (U+212A KELVIN SIGN becomes 'k'), so a lookalike could name a
+  // real command while dodging every rule below. Command words are always plain ASCII.
+  const nonAscii = rawPath.find((word) => /[^\x20-\x7e]/.test(word));
+  if (nonAscii !== undefined) return result("write", false, `command word '${nonAscii}' is not plain ASCII; Azure CLI command names never are`);
   for (const [prefix, reason] of BLOCKED_PREFIXES) {
     if (joined === prefix || joined.startsWith(`${prefix} `)) return result("write", false, `'az ${prefix}' ${reason}`);
   }
@@ -211,11 +252,14 @@ export function classify(args: string[]): Classification {
     if (arg.startsWith("@") || /=@/.test(arg)) return result("write", false, `argument '${arg}' would make the CLI read a local file; pass the content inline instead`);
     if (arg.startsWith("~")) return result("write", false, `argument '${arg}' is a path in the home directory; local files are not reachable from these tools`);
   }
-  if (hasFlag(flags, ["--debug"])) return result("write", false, "--debug can print request details; use --verbose");
+  if (hasFlagOrPrefix(flags, ["--debug"])) return result("write", false, "--debug can print request details; use --verbose");
   const local = localPathArgument(args);
   if (local) return result("write", false, `argument '${local}' is a path on this machine; local files are not reachable from these tools (pass content inline, or use a URL)`);
   for (const [prefix, reason] of LOCAL_UPLOAD_COMMANDS) {
     if (joined === prefix || joined.startsWith(`${prefix} `)) return result("write", false, `'az ${prefix}' ${reason}`);
+  }
+  for (const [name, reason] of LOCAL_WRITE_VERBS) {
+    if (verb === name) return result("write", false, `'az ${joined}' ${reason}`);
   }
   // argparse also accepts a short flag with its value attached (-fmain.bicep).
   const pathFlag = LOCAL_PATH_FLAGS.find((name) => hasFlag(flags, [name]) || (!name.startsWith("--") && flags.some((a) => a.startsWith(name) && !a.startsWith("--"))));
@@ -226,6 +270,11 @@ export function classify(args: string[]): Classification {
     if (typeof rest === "string") return result("read", false, rest);
     const url = rest.url;
     if (!url) return result("read", false, "az rest needs --url");
+    // Nothing a URL parser could read two ways: whitespace and control characters (stripped by WHATWG and by some CLI
+    // versions), backslashes (a path separator to WHATWG, part of the authority to older Python parsers) and non-ASCII.
+    if (/[^\x21-\x7e]|\\/.test(url)) return result("read", false, "az rest --url may only contain printable ASCII without spaces or backslashes");
+    // The CLI treats any value containing '://' as absolute and anything else as a path on management.azure.com.
+    if (url.startsWith("/") && url.includes("://")) return result("read", false, "az rest --url starting with '/' must not contain '://'");
     if (!url.startsWith("/") || url.startsWith("//")) {
       let parsed: URL;
       try {
@@ -233,7 +282,9 @@ export function classify(args: string[]): Classification {
       } catch {
         return result("read", false, `az rest --url '${url}' is not a URL`);
       }
-      if (parsed.protocol !== "https:" || parsed.username || parsed.password || parsed.port || !REST_HOSTS.some((re) => re.test(parsed.hostname))) {
+      // The host as written must be the host as parsed: no userinfo, port, percent-encoding or IDNA mapping in between.
+      const written = /^https:\/\/([^/?#]*)/i.exec(url)?.[1]?.toLowerCase();
+      if (parsed.protocol !== "https:" || parsed.username || parsed.password || parsed.port || written !== parsed.hostname || !REST_HOSTS.some((re) => re.test(parsed.hostname))) {
         return result("read", false, `az rest may only call management.azure.com, graph.microsoft.com, api.loganalytics.io or a vault.azure.net vault over https, not ${parsed.host || url}`);
       }
     }
@@ -248,17 +299,13 @@ export function classify(args: string[]): Classification {
 
   let tier = verbTier(verb);
   if (tier !== "read" && path.slice(0, -1).some((token) => DESTRUCTIVE_GROUPS.has(token))) tier = "destructive";
-  // Deployment stacks delete what leaves the stack when told to.
-  const unmanage = args.findIndex((a) => a === "--action-on-unmanage" || a.startsWith("--action-on-unmanage=") || a === "--aou" || a.startsWith("--aou="));
-  const unmanageValue = unmanage < 0 ? "" : args[unmanage].includes("=") ? args[unmanage].split("=")[1] : (args[unmanage + 1] ?? "");
-  if (/^delete/i.test(unmanageValue)) tier = "destructive";
+  // Deployment stacks delete what leaves the stack when told to. Every occurrence counts: argparse keeps the last.
+  if (flagValues(flags, ["--action-on-unmanage", "--aou"]).some((value) => /^delete/i.test(value))) tier = "destructive";
   // Complete mode deletes every resource in the group that the template does not mention.
-  const mode = args.findIndex((a) => a === "--mode" || a.startsWith("--mode="));
-  const modeValue = mode < 0 ? "" : args[mode].includes("=") ? args[mode].split("=")[1] : (args[mode + 1] ?? "");
-  if (path[0] === "deployment" && modeValue.toLowerCase() === "complete") tier = "destructive";
+  if (path[0] === "deployment" && flagValues(flags, ["--mode"]).some((value) => value.toLowerCase() === "complete")) tier = "destructive";
   if (verb === "download" && tier === "read") tier = "write";
   const sensitive =
-    (path.some((token) => SENSITIVE_TOKEN.test(token)) && !NOT_SENSITIVE.test(joined)) || SENSITIVE_PATHS.some((re) => re.test(joined)) || hasFlag(flags, SENSITIVE_FLAGS);
+    (path.some((token) => SENSITIVE_TOKEN.test(token)) && !NOT_SENSITIVE.test(joined)) || SENSITIVE_PATHS.some((re) => re.test(joined)) || hasFlagOrPrefix(flags, SENSITIVE_FLAGS);
   if (sensitive && tier === "read") tier = "write";
   return result(tier, sensitive);
 }
