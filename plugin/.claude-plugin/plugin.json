@@ -6,6 +6,6 @@
   "author": { "name": "Patrick King", "url": "https://github.com/patrickking67" },
   "homepage": "https://github.com/patrickking67/azure-mcp",
   "repository": "https://github.com/patrickking67/azure-mcp",
-  "license": "UNLICENSED",
+  "license": "MIT",
   "keywords": ["azure", "entra", "azure-cli", "arm", "cloud", "cost", "security", "mcp", "mcp-apps"]
 }

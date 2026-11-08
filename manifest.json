@@ -61,7 +61,7 @@
     "mcp-apps",
     "interactive"
   ],
-  "license": "UNLICENSED",
+  "license": "MIT",
   "compatibility": {
     "platforms": [
       "darwin",
