@@ -1,0 +1,14 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "azure-mcp-remote",
+      "runtimeExecutable": "sh",
+      "runtimeArgs": [
+        "-c",
+        "npm run build && PORT=4107 ENTRA_TENANT_ID=00000000-0000-0000-0000-000000000000 ENTRA_CLIENT_ID=00000000-0000-0000-0000-000000000000 PUBLIC_URL=https://localhost:4107 exec node dist/remote.js"
+      ],
+      "port": 4107
+    }
+  ]
+}
