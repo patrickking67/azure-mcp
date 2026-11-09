@@ -1,12 +1,12 @@
 # Azure MCP: remote image (Streamable HTTP + Entra, src/remote.ts), with the Azure CLI for Az_CLI.
-FROM node:22-bookworm-slim AS build
+FROM node:26-bookworm-slim AS build
 WORKDIR /app
 COPY package.json package-lock.json tsconfig.json ./
 RUN npm ci --ignore-scripts
 COPY src ./src
 RUN npx tsc -p tsconfig.json
 
-FROM node:22-bookworm-slim
+FROM node:26-bookworm-slim
 # Empty installs the newest CLI in Microsoft's repository; a version pins it (e.g. 2.91.0).
 ARG AZ_CLI_VERSION=""
 ENV NODE_ENV=production PORT=8080
