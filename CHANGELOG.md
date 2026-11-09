@@ -14,10 +14,17 @@ All notable changes to this project are listed here. The format follows [Keep a 
 ### Changed
 
 - MCP Apps views: WCAG AA status colours in light and dark, visible focus rings, keyboard-sortable headers with `aria-sort`, labelled filters, an action column that stays in view on narrow screens, and empty and error states that say what to do next.
-- `npm run check` runs everything CI runs (typecheck, tests, manifest check); the type-check-only script is now `npm run typecheck`.
+- `npm run check` runs everything CI runs (typecheck, lint, tests, manifest check); the type-check-only script is now `npm run typecheck`.
+
+### Fixed
+
+- Tool output no longer shows `[object Object]` when Azure returns an object where a string was expected (power state, subscription ids, cost columns, token errors).
+- `azRun` always rejects with an `Error`, and the remote HTTP server catches a rejection that escapes its request handler instead of leaving it unhandled.
 
 ### Added
 
+- ESLint (`npm run lint`) with typescript-eslint type-checked rules, run by `npm run check` and CI.
+- A test that a write without `confirm: true` is refused even with both gates open.
 - `AGENTS.md`, `CLAUDE.md`, `llms.txt`, this changelog, `.editorconfig`, `.gitattributes`, CODEOWNERS, Dependabot, issue and PR templates, and a `.claude/launch.json` for the local HTTP transport.
 
 ## [1.0.0] - 2026-10-26

@@ -6,9 +6,10 @@ Issues and pull requests are welcome. For a security problem, follow [SECURITY.m
 
 ```bash
 npm ci
-npm run check          # what CI runs: typecheck, test, manifest:check
+npm run check          # what CI runs: typecheck, lint, test, manifest:check
 npm test               # build, plugin bundle check, CLI policy, stdio smoke (fake az), remote transport
 npm run typecheck      # type check only
+npm run lint           # ESLint with typescript-eslint type-checked rules
 npm run manifest:check # manifest.json lists every tool the server registers
 ```
 

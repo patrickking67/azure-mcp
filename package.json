@@ -12,7 +12,7 @@
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "check": "npm run typecheck && npm test && npm run manifest:check",
+    "check": "npm run typecheck && npm run lint && npm test && npm run manifest:check",
     "start": "node dist/index.js",
     "start:remote": "node dist/remote.js",
     "test": "npm run build && node scripts/build-plugin.mjs --check && node --test test/*.test.mjs",
