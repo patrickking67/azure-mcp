@@ -38536,7 +38536,7 @@ function registerView(server, view) {
   }
   const uri = viewUri(view.name);
   const html = renderPage(view.page);
-  N3(server, view.title, uri, { description: `${view.title} view` }, async () => ({
+  N3(server, view.title, uri, { description: `${view.title} view` }, () => ({
     contents: [{ uri, mimeType: p, text: html }]
   }));
   const callback = (async (args) => {
@@ -39839,7 +39839,7 @@ function registerCoreTools(server) {
     description: "Report this server's configuration without calling Azure: version, auth mode, which settings are filled in, the Azure CLI it found, and the write gate. Call this first when tools fail or seem to be missing.",
     tier: "read",
     inputSchema: {},
-    handler: async () => formatResult({
+    handler: () => Promise.resolve(formatResult({
       version: SERVER_VERSION,
       auth_mode: authMode(),
       base_auth_mode: BASE_AUTH_MODE,
@@ -39854,7 +39854,7 @@ function registerCoreTools(server) {
       gate: gateStatus(),
       platform: `${process.platform}/${process.arch}`,
       node: process.version
-    })
+    }))
   });
   defineTool(server, {
     name: "Status_Gate",
@@ -39862,7 +39862,7 @@ function registerCoreTools(server) {
     description: "Report whether write and destructive tools are enabled, and which setting opens each gate. Use it to explain a refusal.",
     tier: "read",
     inputSchema: {},
-    handler: async () => formatResult(gateStatus())
+    handler: () => Promise.resolve(formatResult(gateStatus()))
   });
   defineTool(server, {
     name: "Test_Connection",
@@ -40939,9 +40939,9 @@ function createServer() {
   registerCliTools(server);
   registerAppViews(server);
   if (logoBase64) {
-    server.registerResource("azure_logo", LOGO_URI, { title: "Azure Logo", description: "Microsoft Azure logo packaged with the MCP server.", mimeType: LOGO_MIME_TYPE }, async (uri) => ({ contents: [{ uri: uri.href, mimeType: LOGO_MIME_TYPE, blob: logoBase64 }] }));
+    server.registerResource("azure_logo", LOGO_URI, { title: "Azure Logo", description: "Microsoft Azure logo packaged with the MCP server.", mimeType: LOGO_MIME_TYPE }, (uri) => ({ contents: [{ uri: uri.href, mimeType: LOGO_MIME_TYPE, blob: logoBase64 }] }));
   }
-  server.registerResource("api_reference", "azure://reference/api", { title: "Azure API Reference", description: "Every tool with its tier, HTTP method, path template, api-version and Azure CLI equivalent.", mimeType: "application/json" }, async (uri) => ({
+  server.registerResource("api_reference", "azure://reference/api", { title: "Azure API Reference", description: "Every tool with its tier, HTTP method, path template, api-version and Azure CLI equivalent.", mimeType: "application/json" }, (uri) => ({
     contents: [
       {
         uri: uri.href,

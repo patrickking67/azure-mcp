@@ -19,23 +19,25 @@ export function registerCoreTools(server: McpServer): void {
       "Report this server's configuration without calling Azure: version, auth mode, which settings are filled in, the Azure CLI it found, and the write gate. Call this first when tools fail or seem to be missing.",
     tier: "read",
     inputSchema: {},
-    handler: async () =>
-      formatResult({
-        version: SERVER_VERSION,
-        auth_mode: authMode(),
-        base_auth_mode: BASE_AUTH_MODE,
-        remote_caller: currentCaller()?.upn ?? null,
-        on_behalf_of_enabled: oboEnabled(),
-        tenant_id: TENANT_ID ?? null,
-        client_id: CLIENT_ID ?? null,
-        managed_identity_client_id: MANAGED_IDENTITY_CLIENT_ID ?? null,
-        default_subscription: envValue("AZURE_SUBSCRIPTION_ID") ?? null,
-        azure_cli: AZ_LABEL,
-        azure_cli_config_dir: cliConfigDir() ?? "(the user's own ~/.azure)",
-        gate: gateStatus(),
-        platform: `${process.platform}/${process.arch}`,
-        node: process.version,
-      }),
+    handler: () =>
+      Promise.resolve(
+        formatResult({
+          version: SERVER_VERSION,
+          auth_mode: authMode(),
+          base_auth_mode: BASE_AUTH_MODE,
+          remote_caller: currentCaller()?.upn ?? null,
+          on_behalf_of_enabled: oboEnabled(),
+          tenant_id: TENANT_ID ?? null,
+          client_id: CLIENT_ID ?? null,
+          managed_identity_client_id: MANAGED_IDENTITY_CLIENT_ID ?? null,
+          default_subscription: envValue("AZURE_SUBSCRIPTION_ID") ?? null,
+          azure_cli: AZ_LABEL,
+          azure_cli_config_dir: cliConfigDir() ?? "(the user's own ~/.azure)",
+          gate: gateStatus(),
+          platform: `${process.platform}/${process.arch}`,
+          node: process.version,
+        }),
+      ),
   });
 
   defineTool(server, {
@@ -44,7 +46,7 @@ export function registerCoreTools(server: McpServer): void {
     description: "Report whether write and destructive tools are enabled, and which setting opens each gate. Use it to explain a refusal.",
     tier: "read",
     inputSchema: {},
-    handler: async () => formatResult(gateStatus()),
+    handler: () => Promise.resolve(formatResult(gateStatus())),
   });
 
   defineTool(server, {
