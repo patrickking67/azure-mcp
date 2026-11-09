@@ -39,6 +39,10 @@ export default defineConfig(
         tsconfigRootDir: import.meta.dirname,
       },
     },
+    rules: {
+      // `const { metadata: _metadata, ...data } = props` is how the code drops a key from a copy.
+      "@typescript-eslint/no-unused-vars": ["error", { ignoreRestSiblings: true }],
+    },
   },
   {
     files: ["**/*.mjs"],
