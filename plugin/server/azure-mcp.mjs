@@ -29405,7 +29405,7 @@ function azRun(args, options = {}) {
     try {
       child = spawn(AZ.command, [...AZ.prefix, ...args], { stdio: ["ignore", "pipe", "pipe"], env, windowsHide: true, ...options.cwd ? { cwd: options.cwd } : {} });
     } catch (error62) {
-      reject(error62);
+      reject(error62 instanceof Error ? error62 : new Error(String(error62)));
       return;
     }
     const out = [];
