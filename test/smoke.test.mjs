@@ -72,6 +72,18 @@ test("both gates open the destructive tier", async () => {
   await c.close();
 });
 
+test("both gates open still refuse a write without confirm: true", async () => {
+  const c = await connect({ AZURE_MODE: "write", AZURE_ALLOW_DESTRUCTIVE: "true" });
+  for (const confirm of [undefined, false, "true", 1]) {
+    const start = await call(c, "Start_VM", { resource_group: "rg", vm_name: "vm", confirm });
+    assert.equal(start.isError, true, `Start_VM confirm=${String(confirm)}`);
+    const run = await call(c, "Az_CLI_Run", { args: ["group", "create", "-n", "rg", "-l", "eastus"], confirm });
+    assert.equal(run.isError, true, `Az_CLI_Run confirm=${String(confirm)}`);
+    assert.doesNotMatch(text(run), /"argv"/, "the CLI must not run");
+  }
+  await c.close();
+});
+
 test("Az_CLI runs reads, refuses writes, credentials and blocked commands", async () => {
   const c = await connect({ AZURE_MODE: "write", AZURE_ALLOW_DESTRUCTIVE: "true" });
   const ok = await call(c, "Az_CLI", { args: ["vm", "list", "-o", "table"] });
