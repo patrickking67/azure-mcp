@@ -29507,7 +29507,7 @@ async function tokenEndpoint(tenant, form, label) {
   });
   const body = await response.json().catch(() => ({}));
   if (!response.ok || typeof body.access_token !== "string") {
-    throw new Error(`${label} failed (${response.status}): ${String(body.error_description ?? body.error ?? JSON.stringify(body))}`);
+    throw new Error(`${label} failed (${response.status}): ${typeof body.error_description === "string" ? body.error_description : typeof body.error === "string" ? body.error : JSON.stringify(body)}`);
   }
   return { token: body.access_token, expiresIn: typeof body.expires_in === "number" ? body.expires_in : 3e3 };
 }
@@ -29629,6 +29629,9 @@ var ArmApiError = class extends Error {
     this.details = details;
   }
 };
+function textOf(value) {
+  return typeof value === "string" ? value : typeof value === "number" || typeof value === "boolean" ? String(value) : "";
+}
 function isJsonObject(value) {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
@@ -38237,7 +38240,7 @@ async function attempt(label, run, notes) {
 function costRows(result) {
   if (!result || !Array.isArray(result.columns) || !Array.isArray(result.rows))
     return [];
-  const names = result.columns.map((c) => isJsonObject(c) ? String(c.name ?? "") : "");
+  const names = result.columns.map((c) => isJsonObject(c) ? textOf(c.name) : "");
   return result.rows.filter(Array.isArray).map((row) => {
     const entry = {};
     row.forEach((value, i) => {
@@ -38556,7 +38559,7 @@ function registerView(server, view) {
 
 // dist/apps/views/costs.js
 function usageDate(value) {
-  const s = String(value ?? "");
+  const s = typeof value === "string" || typeof value === "number" ? String(value) : "";
   return /^\d{8}$/.test(s) ? `${s.slice(0, 4)}-${s.slice(4, 6)}-${s.slice(6, 8)}` : s || null;
 }
 function registerCostView(server) {
@@ -39657,7 +39660,7 @@ function registerComputeTools(server) {
           try {
             const { body } = await armRequest(`${vm.id}/instanceView`, { apiVersion: "2023-07-01" });
             const statuses = isJsonObject(body) && Array.isArray(body.statuses) ? body.statuses : [];
-            const power = statuses.filter(isJsonObject).map((s) => String(s.code ?? "")).find((c) => c.startsWith("PowerState/"));
+            const power = statuses.filter(isJsonObject).map((s) => textOf(s.code)).find((c) => c.startsWith("PowerState/"));
             entry.power_state = power ? power.replace("PowerState/", "") : "unknown";
           } catch {
             entry.power_state = "unavailable";
@@ -39682,7 +39685,7 @@ function registerComputeTools(server) {
       const vm = isJsonObject(body) ? body : {};
       const props = propsOf(vm);
       const statuses = Array.isArray(dig(props, "instanceView", "statuses")) ? dig(props, "instanceView", "statuses").filter(isJsonObject) : [];
-      const power = statuses.map((s) => String(s.code ?? "")).find((c) => c.startsWith("PowerState/"));
+      const power = statuses.map((s) => textOf(s.code)).find((c) => c.startsWith("PowerState/"));
       return formatResult({
         id: vm.id ?? null,
         name: vm.name ?? null,
@@ -39973,7 +39976,7 @@ function registerCoreTools(server) {
       let subscriptions;
       if (all_subscriptions) {
         const { items } = await armCollect("/subscriptions", { apiVersion: "2022-12-01" });
-        subscriptions = items.map((s) => String(s.subscriptionId ?? "")).filter(Boolean);
+        subscriptions = items.map((s) => textOf(s.subscriptionId)).filter(Boolean);
       } else {
         subscriptions = [await resolveSubscription(subscription_id)];
       }

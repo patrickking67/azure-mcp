@@ -4,7 +4,7 @@ import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import { AZ_LABEL, cliConfigDir } from "../az.js";
 import { authMode, BASE_AUTH_MODE, CLIENT_ID, MANAGED_IDENTITY_CLIENT_ID, TENANT_ID, currentCaller, oboEnabled } from "../auth.js";
-import { armCollect, armRequest, azAccountShow, dig, formatResult, isJsonObject, propsOf, resolveSubscription, type JsonValue } from "../client.js";
+import { armCollect, armRequest, azAccountShow, dig, formatResult, isJsonObject, propsOf, resolveSubscription, textOf, type JsonValue } from "../client.js";
 import { envValue } from "../env.js";
 import { gateStatus } from "../gate.js";
 import { SERVER_VERSION } from "../version.js";
@@ -164,7 +164,7 @@ export function registerCoreTools(server: McpServer): void {
       let subscriptions: string[];
       if (all_subscriptions) {
         const { items } = await armCollect("/subscriptions", { apiVersion: "2022-12-01" });
-        subscriptions = items.map((s) => String(s.subscriptionId ?? "")).filter(Boolean);
+        subscriptions = items.map((s) => textOf(s.subscriptionId)).filter(Boolean);
       } else {
         subscriptions = [await resolveSubscription(subscription_id)];
       }

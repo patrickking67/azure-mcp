@@ -85,7 +85,7 @@ async function tokenEndpoint(tenant: string, form: Record<string, string>, label
   const body = (await response.json().catch(() => ({}))) as JsonObject;
   if (!response.ok || typeof body.access_token !== "string") {
     // The body carries AADSTS codes and a correlation id, never a secret; it is what an operator needs.
-    throw new Error(`${label} failed (${response.status}): ${String(body.error_description ?? body.error ?? JSON.stringify(body))}`);
+    throw new Error(`${label} failed (${response.status}): ${typeof body.error_description === "string" ? body.error_description : typeof body.error === "string" ? body.error : JSON.stringify(body)}`);
   }
   return { token: body.access_token, expiresIn: typeof body.expires_in === "number" ? body.expires_in : 3000 };
 }

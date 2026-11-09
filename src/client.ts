@@ -24,6 +24,11 @@ export class ArmApiError extends Error {
   }
 }
 
+// A scalar as text; objects, arrays and null become "" rather than "[object Object]" or a joined list.
+export function textOf(value: JsonValue | undefined): string {
+  return typeof value === "string" ? value : typeof value === "number" || typeof value === "boolean" ? String(value) : "";
+}
+
 export function isJsonObject(value: JsonValue | undefined): value is JsonObject {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }

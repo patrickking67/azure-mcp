@@ -2,7 +2,7 @@
 // no Cost Management reader role) must not blank the whole view, so each read goes through attempt(),
 // which records a note and lets the rest render.
 
-import { isJsonObject, type JsonObject, type JsonValue } from "../client.js";
+import { isJsonObject, textOf, type JsonObject, type JsonValue } from "../client.js";
 
 export async function attempt<T>(label: string, run: () => Promise<T>, notes: string[]): Promise<T | undefined> {
   try {
@@ -17,7 +17,7 @@ export async function attempt<T>(label: string, run: () => Promise<T>, notes: st
 /** Cost Management answers {columns:[{name}], rows:[[...]]}; turn it into objects keyed by column name. */
 export function costRows(result: JsonObject | undefined): JsonObject[] {
   if (!result || !Array.isArray(result.columns) || !Array.isArray(result.rows)) return [];
-  const names = result.columns.map((c) => (isJsonObject(c) ? String(c.name ?? "") : ""));
+  const names = result.columns.map((c) => (isJsonObject(c) ? textOf(c.name) : ""));
   return result.rows.filter(Array.isArray).map((row) => {
     const entry: JsonObject = {};
     (row as JsonValue[]).forEach((value, i) => {
