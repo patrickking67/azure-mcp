@@ -44,7 +44,7 @@ export function defineTool<S extends ZodRawShapeCompat>(server: McpServer, spec:
     });
   }
   const gated = spec.tier !== "read";
-  const inputSchema = (gated ? { ...spec.inputSchema, confirm: confirmParam } : spec.inputSchema) as S;
+  const inputSchema = gated ? { ...spec.inputSchema, confirm: confirmParam } : spec.inputSchema;
   const description = spec.cli ? `${spec.description} CLI: \`${spec.cli}\`.` : spec.description;
   const callback = (async (args: ShapeOutput<S>) => {
     if (gated) requireTier(spec.name, spec.runtimeTier ? spec.runtimeTier(args) : spec.tier, spec.impact);

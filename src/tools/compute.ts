@@ -47,7 +47,7 @@ export function registerComputeTools(server: McpServer): void {
         if (power_state && typeof vm.id === "string") {
           try {
             const { body } = await armRequest(`${vm.id}/instanceView`, { apiVersion: "2023-07-01" });
-            const statuses = isJsonObject(body) && Array.isArray(body.statuses) ? (body.statuses as JsonValue[]) : [];
+            const statuses = isJsonObject(body) && Array.isArray(body.statuses) ? body.statuses : [];
             const power = statuses.filter(isJsonObject).map((s) => String(s.code ?? "")).find((c) => c.startsWith("PowerState/"));
             entry.power_state = power ? power.replace("PowerState/", "") : "unknown";
           } catch {
@@ -203,7 +203,7 @@ export function registerComputeTools(server: McpServer): void {
       const cluster = isJsonObject(body) ? body : {};
       const props = propsOf(cluster);
       const pools = Array.isArray(props.agentPoolProfiles)
-        ? (props.agentPoolProfiles as JsonValue[]).filter(isJsonObject).map((p) => ({ name: p.name ?? null, count: p.count ?? null, vm_size: p.vmSize ?? null, mode: p.mode ?? null, os_type: p.osType ?? null, kubernetes_version: p.orchestratorVersion ?? null }))
+        ? props.agentPoolProfiles.filter(isJsonObject).map((p) => ({ name: p.name ?? null, count: p.count ?? null, vm_size: p.vmSize ?? null, mode: p.mode ?? null, os_type: p.osType ?? null, kubernetes_version: p.orchestratorVersion ?? null }))
         : [];
       return formatResult({
         id: cluster.id ?? null,

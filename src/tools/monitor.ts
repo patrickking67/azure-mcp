@@ -2,7 +2,7 @@
 
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
-import { armRequest, dig, formatResult, httpJson, isJsonObject, LOG_ANALYTICS_BASE, LOG_ANALYTICS_RESOURCE, propsOf, type JsonObject, type JsonValue } from "../client.js";
+import { armRequest, dig, formatResult, httpJson, isJsonObject, LOG_ANALYTICS_BASE, LOG_ANALYTICS_RESOURCE, propsOf, type JsonObject } from "../client.js";
 import { defineTool } from "./define.js";
 
 const resourceIdParam = { resource_id: z.string().describe("Full ARM resource id.") };
@@ -44,7 +44,7 @@ export function registerMonitorTools(server: McpServer): void {
     handler: async ({ resource_id }) => {
       requireResourceId(resource_id);
       const { body } = await armRequest(`${resource_id}/providers/microsoft.insights/metricDefinitions`, { apiVersion: "2018-01-01" });
-      const items = isJsonObject(body) && Array.isArray(body.value) ? (body.value as JsonValue[]).filter(isJsonObject) : [];
+      const items = isJsonObject(body) && Array.isArray(body.value) ? body.value.filter(isJsonObject) : [];
       const definitions = items.map((d) => ({
         name: dig(d, "name", "value"),
         display_name: dig(d, "name", "localizedValue"),
@@ -67,7 +67,7 @@ export function registerMonitorTools(server: McpServer): void {
     handler: async ({ resource_id }) => {
       requireResourceId(resource_id);
       const { body } = await armRequest(`${resource_id}/providers/Microsoft.Insights/diagnosticSettings`, { apiVersion: "2021-05-01-preview" });
-      const items = isJsonObject(body) && Array.isArray(body.value) ? (body.value as JsonValue[]).filter(isJsonObject) : [];
+      const items = isJsonObject(body) && Array.isArray(body.value) ? body.value.filter(isJsonObject) : [];
       const settings = items.map((s) => {
         const props = propsOf(s);
         return { name: s.name ?? null, workspace_id: props.workspaceId ?? null, storage_account_id: props.storageAccountId ?? null, event_hub_name: props.eventHubName ?? null, logs: props.logs ?? null, metrics: props.metrics ?? null };

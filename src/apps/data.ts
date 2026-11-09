@@ -17,8 +17,8 @@ export async function attempt<T>(label: string, run: () => Promise<T>, notes: st
 /** Cost Management answers {columns:[{name}], rows:[[...]]}; turn it into objects keyed by column name. */
 export function costRows(result: JsonObject | undefined): JsonObject[] {
   if (!result || !Array.isArray(result.columns) || !Array.isArray(result.rows)) return [];
-  const names = (result.columns as JsonValue[]).map((c) => (isJsonObject(c) ? String(c.name ?? "") : ""));
-  return (result.rows as JsonValue[]).filter(Array.isArray).map((row) => {
+  const names = result.columns.map((c) => (isJsonObject(c) ? String(c.name ?? "") : ""));
+  return result.rows.filter(Array.isArray).map((row) => {
     const entry: JsonObject = {};
     (row as JsonValue[]).forEach((value, i) => {
       entry[names[i] ?? `col${i}`] = value;

@@ -2,7 +2,7 @@
 // security recommendations, and Azure Policy non-compliance.
 
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { armCollect, armRequest, dig, isJsonObject, propsOf, resolveSubscription, type JsonValue } from "../../client.js";
+import { armCollect, armRequest, dig, isJsonObject, propsOf, resolveSubscription } from "../../client.js";
 import { subscriptionSchema } from "../../tools/shared.js";
 import { attempt, num, str } from "../data.js";
 import { registerView } from "../shell.js";
@@ -69,7 +69,7 @@ boot((root, view) => {
       const activeAlerts = (alerts?.items ?? [])
         .map((a) => ({ name: str(propsOf(a).alertDisplayName), severity: str(propsOf(a).severity), status: str(propsOf(a).status), entity: str(propsOf(a).compromisedEntity), time: str(propsOf(a).timeGeneratedUtc) }))
         .filter((a) => a.status === "Active" || a.status === "InProgress");
-      const summary = policy && isJsonObject(policy.body) && Array.isArray(policy.body.value) ? (policy.body.value as JsonValue[]).find(isJsonObject) : undefined;
+      const summary = policy && isJsonObject(policy.body) && Array.isArray(policy.body.value) ? policy.body.value.find(isJsonObject) : undefined;
       const results = summary && isJsonObject(summary) ? summary.results : null;
       return {
         subscription_id: sub,
