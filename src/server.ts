@@ -57,7 +57,7 @@ export function createServer(): McpServer {
       "azure_logo",
       LOGO_URI,
       { title: "Azure Logo", description: "Microsoft Azure logo packaged with the MCP server.", mimeType: LOGO_MIME_TYPE },
-      async (uri) => ({ contents: [{ uri: uri.href, mimeType: LOGO_MIME_TYPE, blob: logoBase64 }] }),
+      (uri) => ({ contents: [{ uri: uri.href, mimeType: LOGO_MIME_TYPE, blob: logoBase64 }] }),
     );
   }
 
@@ -65,7 +65,7 @@ export function createServer(): McpServer {
     "api_reference",
     "azure://reference/api",
     { title: "Azure API Reference", description: "Every tool with its tier, HTTP method, path template, api-version and Azure CLI equivalent.", mimeType: "application/json" },
-    async (uri) => ({
+    (uri) => ({
       contents: [
         {
           uri: uri.href,

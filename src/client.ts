@@ -24,6 +24,11 @@ export class ArmApiError extends Error {
   }
 }
 
+// A scalar as text; objects, arrays and null become "" rather than "[object Object]" or a joined list.
+export function textOf(value: JsonValue | undefined): string {
+  return typeof value === "string" ? value : typeof value === "number" || typeof value === "boolean" ? String(value) : "";
+}
+
 export function isJsonObject(value: JsonValue | undefined): value is JsonObject {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
@@ -62,7 +67,7 @@ export async function httpJson(url: URL, resource: string, method: string, body?
     try {
       parsed = JSON.parse(text) as JsonValue;
     } catch {
-      parsed = { raw: text } as JsonObject;
+      parsed = { raw: text };
     }
   }
   return { status: response.status, statusText: response.statusText, ok: response.ok, body: parsed };
@@ -110,7 +115,7 @@ export async function armCollect(path: string, options: ArmOptions): Promise<{ i
   while (next) {
     const { body }: { body: JsonValue } = await armRequest(next, pages === 0 ? options : { apiVersion: options.apiVersion });
     pages += 1;
-    if (isJsonObject(body) && Array.isArray(body.value)) items.push(...(body.value as JsonValue[]).filter(isJsonObject));
+    if (isJsonObject(body) && Array.isArray(body.value)) items.push(...body.value.filter(isJsonObject));
     const nl = isJsonObject(body) ? body.nextLink : undefined;
     next = typeof nl === "string" ? nl : undefined;
     if (pages >= MAX_PAGES && next) {
@@ -135,7 +140,7 @@ export async function collectPaged(startUrl: string, resource: string, extraHead
     if (!result.ok) throw new Error(`GET ${next} failed: ${result.status} ${result.statusText}: ${JSON.stringify(result.body)}`);
     pages += 1;
     const body = result.body;
-    if (isJsonObject(body) && Array.isArray(body.value)) items.push(...(body.value as JsonValue[]).filter(isJsonObject));
+    if (isJsonObject(body) && Array.isArray(body.value)) items.push(...body.value.filter(isJsonObject));
     const nl = isJsonObject(body) ? (body["@odata.nextLink"] ?? body.nextLink) : undefined;
     next = typeof nl === "string" ? nl : undefined;
     if (pages >= MAX_PAGES && next) {
@@ -193,7 +198,7 @@ export async function resourceGraph(subscriptions: string[], query: string, maxR
       method: "POST",
       body: { subscriptions, query, options },
     });
-    const data = isJsonObject(body) && Array.isArray(body.data) ? (body.data as JsonValue[]).filter(isJsonObject) : [];
+    const data = isJsonObject(body) && Array.isArray(body.data) ? body.data.filter(isJsonObject) : [];
     rows.push(...data);
     skipToken = isJsonObject(body) && typeof body.$skipToken === "string" ? body.$skipToken : undefined;
   } while (skipToken && rows.length < maxRows);

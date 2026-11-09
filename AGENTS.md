@@ -10,9 +10,10 @@ Security is the point of the project. The gates and the CLI classifier must neve
 
 ## Stack
 
-- Node.js 20+ (CI runs 22 and 24), ESM, TypeScript strict, `tsc` only. npm with `package-lock.json`.
+- Node.js 20+ (CI runs 22 and 24), ESM, TypeScript strict, `tsc` to build. npm with `package-lock.json`. ESLint 10 needs Node 20.19+.
 - Runtime deps: `@modelcontextprotocol/sdk`, `@modelcontextprotocol/ext-apps`, `zod`, `jose`. No others without asking.
-- Tests: `node:test` against the built `dist/`. No linter beyond `tsc --strict`.
+- Tests: `node:test` against the built `dist/`.
+- Lint: ESLint flat config (`eslint.config.mjs`) with typescript-eslint `recommendedTypeChecked` for `src/` and `@eslint/js` recommended for the `.mjs` scripts and tests. Fix findings; do not add disable comments without a reason next to them.
 - esbuild bundles the plugin server; `@anthropic-ai/mcpb` packs the Claude Desktop bundle.
 
 ## Layout
@@ -29,7 +30,7 @@ Security is the point of the project. The gates and the CLI classifier must neve
 | `src/apps/` | MCP Apps views: `shell.ts` (shared HTML, CSS, table, boot), `views/*.ts` |
 | `src/apps/generated/runtime.ts` | inlined ext-apps browser runtime (generated) |
 | `src/auth.ts`, `src/entra.ts`, `src/client.ts` | tokens, Entra validation, ARM/Graph/Key Vault/Log Analytics clients |
-| `test/` | `cli-policy.test.mjs` (classifier), `smoke.test.mjs` (stdio + fake az), `remote.test.mjs` |
+| `test/` | `cli-policy.test.mjs` (classifier), `smoke.test.mjs` (stdio + fake az), `remote.test.mjs`, `az.test.mjs`, `client.test.mjs` |
 | `test/fixtures/fake-az.mjs` | stands in for `az`; echoes argv as JSON |
 | `plugin/` | Claude Code / Codex plugin; `plugin/server/azure-mcp.mjs` is a committed esbuild bundle |
 | `manifest.json` | `.mcpb` manifest; its tool list is synced from the server |
@@ -41,8 +42,9 @@ Run from the repo root. All of these work offline except `mcpb:pack` (needs the 
 
 ```bash
 npm ci                 # install from the lockfile
-npm run check          # the one gate: typecheck + test + manifest:check. Run before every commit.
+npm run check          # the one gate: typecheck + lint + test + manifest:check. Run before every commit.
 npm run typecheck      # tsc --noEmit
+npm run lint           # eslint .
 npm test               # build, plugin bundle check, all tests
 npm run build          # tsc to dist/
 npm run plugin:build   # rebuild plugin/server/azure-mcp.mjs; required after any src/ change

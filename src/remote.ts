@@ -43,7 +43,7 @@ async function readJson(req: IncomingMessage): Promise<unknown> {
   return text ? JSON.parse(text) : undefined;
 }
 
-const http = createHttpServer(async (req, res) => {
+async function handleRequest(req: IncomingMessage, res: ServerResponse): Promise<void> {
   try {
     const path = new URL(req.url ?? "/", "http://x").pathname.replace(/\/+$/, "") || "/";
     if (req.method === "GET" && path === "/healthz") {
@@ -88,6 +88,15 @@ const http = createHttpServer(async (req, res) => {
     console.error("request failed:", error instanceof Error ? error.message : error);
     if (!res.headersSent) send(res, 500, { error: "internal_error" });
   }
+}
+
+// node:http ignores the handler's return value, so a rejection that escapes the handler's own catch
+// is logged and the socket closed here instead of becoming an unhandled rejection.
+const http = createHttpServer((req, res) => {
+  handleRequest(req, res).catch((error: unknown) => {
+    console.error("request failed:", error instanceof Error ? error.message : error);
+    res.destroy();
+  });
 });
 
 http.listen(port, () => {

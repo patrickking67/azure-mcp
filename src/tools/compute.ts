@@ -2,7 +2,7 @@
 
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
-import { armCollect, armRequest, dig, formatResult, isJsonObject, propsOf, resolveSubscription, type JsonObject, type JsonValue } from "../client.js";
+import { armCollect, armRequest, dig, formatResult, isJsonObject, propsOf, resolveSubscription, textOf, type JsonObject, type JsonValue } from "../client.js";
 import { defineTool } from "./define.js";
 import { resourceGroupParam, segment, subscriptionSchema } from "./shared.js";
 
@@ -47,8 +47,8 @@ export function registerComputeTools(server: McpServer): void {
         if (power_state && typeof vm.id === "string") {
           try {
             const { body } = await armRequest(`${vm.id}/instanceView`, { apiVersion: "2023-07-01" });
-            const statuses = isJsonObject(body) && Array.isArray(body.statuses) ? (body.statuses as JsonValue[]) : [];
-            const power = statuses.filter(isJsonObject).map((s) => String(s.code ?? "")).find((c) => c.startsWith("PowerState/"));
+            const statuses = isJsonObject(body) && Array.isArray(body.statuses) ? body.statuses : [];
+            const power = statuses.filter(isJsonObject).map((s) => textOf(s.code)).find((c) => c.startsWith("PowerState/"));
             entry.power_state = power ? power.replace("PowerState/", "") : "unknown";
           } catch {
             entry.power_state = "unavailable";
@@ -74,7 +74,7 @@ export function registerComputeTools(server: McpServer): void {
       const vm = isJsonObject(body) ? body : {};
       const props = propsOf(vm);
       const statuses = Array.isArray(dig(props, "instanceView", "statuses")) ? (dig(props, "instanceView", "statuses") as JsonValue[]).filter(isJsonObject) : [];
-      const power = statuses.map((s) => String(s.code ?? "")).find((c) => c.startsWith("PowerState/"));
+      const power = statuses.map((s) => textOf(s.code)).find((c) => c.startsWith("PowerState/"));
       return formatResult({
         id: vm.id ?? null,
         name: vm.name ?? null,
@@ -203,7 +203,7 @@ export function registerComputeTools(server: McpServer): void {
       const cluster = isJsonObject(body) ? body : {};
       const props = propsOf(cluster);
       const pools = Array.isArray(props.agentPoolProfiles)
-        ? (props.agentPoolProfiles as JsonValue[]).filter(isJsonObject).map((p) => ({ name: p.name ?? null, count: p.count ?? null, vm_size: p.vmSize ?? null, mode: p.mode ?? null, os_type: p.osType ?? null, kubernetes_version: p.orchestratorVersion ?? null }))
+        ? props.agentPoolProfiles.filter(isJsonObject).map((p) => ({ name: p.name ?? null, count: p.count ?? null, vm_size: p.vmSize ?? null, mode: p.mode ?? null, os_type: p.osType ?? null, kubernetes_version: p.orchestratorVersion ?? null }))
         : [];
       return formatResult({
         id: cluster.id ?? null,

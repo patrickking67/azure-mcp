@@ -84,7 +84,7 @@ export function azRun(args: string[], options: { timeoutMs?: number; cwd?: strin
     try {
       child = spawn(AZ.command, [...AZ.prefix, ...args], { stdio: ["ignore", "pipe", "pipe"], env, windowsHide: true, ...(options.cwd ? { cwd: options.cwd } : {}) });
     } catch (error) {
-      reject(error);
+      reject(error instanceof Error ? error : new Error(String(error)));
       return;
     }
     const out: Buffer[] = [];

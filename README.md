@@ -176,9 +176,10 @@ MCP client --HTTPS--> src/remote.ts -+                    src/apps/*   (MCP Apps
 
 ```bash
 npm ci
-npm run check          # everything CI runs: type check, tests, manifest check
+npm run check          # everything CI runs: type check, lint, tests, manifest check
 npm test               # build + plugin bundle check + CLI policy + stdio smoke (fake az) + remote transport
 npm run typecheck      # type check only
+npm run lint           # ESLint (typescript-eslint, type-checked)
 npm run manifest:check # manifest.json lists every tool
 npm run manifest       # rewrite manifest.json tools from the running server
 npm run plugin:build   # rebuild plugin/server/azure-mcp.mjs after changing src/

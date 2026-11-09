@@ -119,7 +119,7 @@ async function execute(tool: string, input: CommandArgs, check: (c: Classificati
     output,
     stderr: stderr ? stderr.slice(-4000) : null,
   };
-  const result = formatResult(body as JsonValue);
+  const result = formatResult(body);
   if (run.exitCode !== 0 || run.timedOut) return { ...result, isError: true };
   return result;
 }

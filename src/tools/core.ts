@@ -4,7 +4,7 @@ import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import { AZ_LABEL, cliConfigDir } from "../az.js";
 import { authMode, BASE_AUTH_MODE, CLIENT_ID, MANAGED_IDENTITY_CLIENT_ID, TENANT_ID, currentCaller, oboEnabled } from "../auth.js";
-import { armCollect, armRequest, azAccountShow, dig, formatResult, isJsonObject, propsOf, resolveSubscription, type JsonValue } from "../client.js";
+import { armCollect, armRequest, azAccountShow, dig, formatResult, isJsonObject, propsOf, resolveSubscription, textOf, type JsonValue } from "../client.js";
 import { envValue } from "../env.js";
 import { gateStatus } from "../gate.js";
 import { SERVER_VERSION } from "../version.js";
@@ -19,23 +19,25 @@ export function registerCoreTools(server: McpServer): void {
       "Report this server's configuration without calling Azure: version, auth mode, which settings are filled in, the Azure CLI it found, and the write gate. Call this first when tools fail or seem to be missing.",
     tier: "read",
     inputSchema: {},
-    handler: async () =>
-      formatResult({
-        version: SERVER_VERSION,
-        auth_mode: authMode(),
-        base_auth_mode: BASE_AUTH_MODE,
-        remote_caller: currentCaller()?.upn ?? null,
-        on_behalf_of_enabled: oboEnabled(),
-        tenant_id: TENANT_ID ?? null,
-        client_id: CLIENT_ID ?? null,
-        managed_identity_client_id: MANAGED_IDENTITY_CLIENT_ID ?? null,
-        default_subscription: envValue("AZURE_SUBSCRIPTION_ID") ?? null,
-        azure_cli: AZ_LABEL,
-        azure_cli_config_dir: cliConfigDir() ?? "(the user's own ~/.azure)",
-        gate: gateStatus(),
-        platform: `${process.platform}/${process.arch}`,
-        node: process.version,
-      }),
+    handler: () =>
+      Promise.resolve(
+        formatResult({
+          version: SERVER_VERSION,
+          auth_mode: authMode(),
+          base_auth_mode: BASE_AUTH_MODE,
+          remote_caller: currentCaller()?.upn ?? null,
+          on_behalf_of_enabled: oboEnabled(),
+          tenant_id: TENANT_ID ?? null,
+          client_id: CLIENT_ID ?? null,
+          managed_identity_client_id: MANAGED_IDENTITY_CLIENT_ID ?? null,
+          default_subscription: envValue("AZURE_SUBSCRIPTION_ID") ?? null,
+          azure_cli: AZ_LABEL,
+          azure_cli_config_dir: cliConfigDir() ?? "(the user's own ~/.azure)",
+          gate: gateStatus(),
+          platform: `${process.platform}/${process.arch}`,
+          node: process.version,
+        }),
+      ),
   });
 
   defineTool(server, {
@@ -44,7 +46,7 @@ export function registerCoreTools(server: McpServer): void {
     description: "Report whether write and destructive tools are enabled, and which setting opens each gate. Use it to explain a refusal.",
     tier: "read",
     inputSchema: {},
-    handler: async () => formatResult(gateStatus()),
+    handler: () => Promise.resolve(formatResult(gateStatus())),
   });
 
   defineTool(server, {
@@ -164,7 +166,7 @@ export function registerCoreTools(server: McpServer): void {
       let subscriptions: string[];
       if (all_subscriptions) {
         const { items } = await armCollect("/subscriptions", { apiVersion: "2022-12-01" });
-        subscriptions = items.map((s) => String(s.subscriptionId ?? "")).filter(Boolean);
+        subscriptions = items.map((s) => textOf(s.subscriptionId)).filter(Boolean);
       } else {
         subscriptions = [await resolveSubscription(subscription_id)];
       }

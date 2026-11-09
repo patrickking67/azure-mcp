@@ -9,7 +9,7 @@ import { attempt, costRows, num, str } from "../data.js";
 import { registerView } from "../shell.js";
 
 function usageDate(value: unknown): string | null {
-  const s = String(value ?? "");
+  const s = typeof value === "string" || typeof value === "number" ? String(value) : "";
   return /^\d{8}$/.test(s) ? `${s.slice(0, 4)}-${s.slice(4, 6)}-${s.slice(6, 8)}` : s || null;
 }
 

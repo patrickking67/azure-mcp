@@ -245,7 +245,7 @@ export function registerView<Args extends ZodRawShapeCompat>(server: McpServer, 
   }
   const uri = viewUri(view.name);
   const html = renderPage(view.page);
-  registerAppResource(server, view.title, uri, { description: `${view.title} view` }, async () => ({
+  registerAppResource(server, view.title, uri, { description: `${view.title} view` }, () => ({
     contents: [{ uri, mimeType: RESOURCE_MIME_TYPE, text: html }],
   }));
   const callback = (async (args: ShapeOutput<Args>): Promise<ViewResult> => {

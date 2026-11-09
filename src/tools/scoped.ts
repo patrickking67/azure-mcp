@@ -2,7 +2,7 @@
 
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
-import { armCollect, armRequest, dig, formatResult, isJsonObject, propsOf, resolveSubscription, skuNameOf, type JsonObject, type JsonValue } from "../client.js";
+import { armCollect, armRequest, dig, formatResult, isJsonObject, propsOf, resolveSubscription, skuNameOf, type JsonObject } from "../client.js";
 import { defineTool } from "./define.js";
 import { resourceGroupParam, segment, subscriptionSchema } from "./shared.js";
 
@@ -46,7 +46,7 @@ export function registerScopedTools(server: McpServer): void {
           address_prefix: props.addressPrefix ?? props.addressPrefixes ?? null,
           network_security_group: dig(props, "networkSecurityGroup", "id"),
           route_table: dig(props, "routeTable", "id"),
-          ip_configuration_count: Array.isArray(props.ipConfigurations) ? (props.ipConfigurations as JsonValue[]).length : 0,
+          ip_configuration_count: Array.isArray(props.ipConfigurations) ? props.ipConfigurations.length : 0,
         };
       });
       return formatResult({ subscription_id: sub, resource_group, vnet_name, count: subnets.length, truncated, subnets });
@@ -84,8 +84,8 @@ export function registerScopedTools(server: McpServer): void {
           destination_port: p.destinationPortRange ?? p.destinationPortRanges ?? null,
         };
       };
-      const rules = (Array.isArray(props.securityRules) ? (props.securityRules as JsonValue[]).filter(isJsonObject) : []).map(mapRule);
-      const defaults = include_default_rules && Array.isArray(props.defaultSecurityRules) ? (props.defaultSecurityRules as JsonValue[]).filter(isJsonObject).map(mapRule) : [];
+      const rules = (Array.isArray(props.securityRules) ? props.securityRules.filter(isJsonObject) : []).map(mapRule);
+      const defaults = include_default_rules && Array.isArray(props.defaultSecurityRules) ? props.defaultSecurityRules.filter(isJsonObject).map(mapRule) : [];
       return formatResult({ subscription_id: sub, resource_group, nsg_name, rule_count: rules.length, rules, default_rules: include_default_rules ? defaults : null });
     },
   });
