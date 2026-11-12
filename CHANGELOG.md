@@ -13,6 +13,7 @@ All notable changes to this project are listed here. The format follows [Keep a 
 
 ### Changed
 
+- CI also tests Node 26, the version the Docker image runs.
 - MCP Apps views: WCAG AA status colours in light and dark, visible focus rings, keyboard-sortable headers with `aria-sort`, labelled filters, an action column that stays in view on narrow screens, and empty and error states that say what to do next.
 - `npm run check` runs everything CI runs (typecheck, lint, tests, manifest check); the type-check-only script is now `npm run typecheck`.
 

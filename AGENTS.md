@@ -10,7 +10,7 @@ Security is the point of the project. The gates and the CLI classifier must neve
 
 ## Stack
 
-- Node.js 20+ (CI runs 22 and 24), ESM, TypeScript strict, `tsc` to build. npm with `package-lock.json`. ESLint 10 needs Node 20.19+.
+- Node.js 20+ (CI runs 22, 24 and 26; the Docker image is on 26), ESM, TypeScript strict, `tsc` to build. npm with `package-lock.json`. ESLint 10 needs Node 20.19+.
 - Runtime deps: `@modelcontextprotocol/sdk`, `@modelcontextprotocol/ext-apps`, `zod`, `jose`. No others without asking.
 - Tests: `node:test` against the built `dist/`.
 - Lint: ESLint flat config (`eslint.config.mjs`) with typescript-eslint `recommendedTypeChecked` for `src/` and `@eslint/js` recommended for the `.mjs` scripts and tests. Fix findings; do not add disable comments without a reason next to them.
@@ -82,7 +82,7 @@ Local HTTP: `.claude/launch.json` starts `dist/remote.js` on port 4107 with plac
 1. Branch from `main` (`feat/`, `fix/`, `docs/`, `chore/`).
 2. Change, add tests, `npm run plugin:build`, `npm run manifest` if the tool list changed.
 3. `npm run check`. Update `CHANGELOG.md` under `[Unreleased]`.
-4. Push and open a PR against `main`. CI runs `npm run check` on Node 22 and 24.
+4. Push and open a PR against `main`. CI runs `npm run check` on Node 22, 24 and 26.
 5. Releases: bump the version in `package.json`, `manifest.json`, `src/version.ts`, `plugin/plugin.json`, `plugin/.claude-plugin/plugin.json` and `.claude-plugin/marketplace.json`, rebuild the plugin, move `[Unreleased]` to the new version in `CHANGELOG.md`, tag `vX.Y.Z`, attach `azure.mcpb` from `npm run mcpb:pack`. Only when the owner asks.
 
 ## Definition of done
