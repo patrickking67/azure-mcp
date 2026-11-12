@@ -1,7 +1,7 @@
 // Virtual machines with live power state from Resource Graph, and Start / Deallocate / Restart buttons
 // that call Start_VM, Stop_VM and Restart_VM.
 
-import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import type { McpServer } from "@modelcontextprotocol/server";
 import { z } from "zod";
 import { resolveSubscription, resourceGraph } from "../../client.js";
 import { subscriptionSchema } from "../../tools/shared.js";

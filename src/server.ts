@@ -2,7 +2,7 @@
 // (index.ts, for the .mcpb and CLI clients) and the remote one (remote.ts, one server per request),
 // so the two surfaces cannot drift. Nothing here reads credentials, so building never fails.
 
-import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { McpServer } from "@modelcontextprotocol/server";
 import { existsSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";

@@ -12,9 +12,6 @@ updates:
       # typescript-eslint 8 supports TypeScript below 6.1 only.
       - dependency-name: typescript
         versions: [">= 7"]
-      # ext-apps 2 needs the MCP TypeScript SDK 2 split packages; this server is on @modelcontextprotocol/sdk 1.
-      - dependency-name: "@modelcontextprotocol/ext-apps"
-        versions: [">= 2"]
   - package-ecosystem: github-actions
     directory: /
     schedule:

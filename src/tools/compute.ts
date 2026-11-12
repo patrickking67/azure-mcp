@@ -1,6 +1,6 @@
 // Virtual machines, App Service and AKS: reads and the power operations.
 
-import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import type { McpServer } from "@modelcontextprotocol/server";
 import { z } from "zod";
 import { armCollect, armRequest, dig, formatResult, isJsonObject, propsOf, resolveSubscription, textOf, type JsonObject, type JsonValue } from "../client.js";
 import { defineTool } from "./define.js";

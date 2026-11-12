@@ -13,7 +13,7 @@
 //      AZURE_MODE, AZURE_ALLOW_DESTRUCTIVE.
 
 import { createServer as createHttpServer, type IncomingMessage, type ServerResponse } from "node:http";
-import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
+import { NodeStreamableHTTPServerTransport } from "@modelcontextprotocol/node";
 import { BASE_AUTH_MODE, currentCaller, oboEnabled, withCaller } from "./auth.js";
 import { auditLines, authenticate, callerReadRefusal, callerTierRefusal, challengeHeader, entraConfig, forbiddenHeader, protectedResourceMetadata } from "./entra.js";
 import { envValue } from "./env.js";
@@ -76,7 +76,7 @@ async function handleRequest(req: IncomingMessage, res: ServerResponse): Promise
     for (const line of auditLines(caller, body)) console.error(line);
     await withCaller(caller, async () => {
       const server = createServer();
-      const transport = new StreamableHTTPServerTransport({ sessionIdGenerator: undefined, enableJsonResponse: true });
+      const transport = new NodeStreamableHTTPServerTransport({ sessionIdGenerator: undefined, enableJsonResponse: true });
       res.on("close", () => {
         void transport.close();
         void server.close();

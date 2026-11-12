@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // stdio entry point: the .mcpb bundle, Claude Code, Codex and any local MCP client.
 
-import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
+import { StdioServerTransport } from "@modelcontextprotocol/server/stdio";
 import { AZ_LABEL } from "./az.js";
 import { BASE_AUTH_MODE } from "./auth.js";
 import { ArmApiError } from "./client.js";

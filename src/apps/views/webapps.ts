@@ -1,6 +1,6 @@
 // App Service web apps and function apps, with Start / Stop / Restart buttons that call the gated tools.
 
-import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import type { McpServer } from "@modelcontextprotocol/server";
 import { z } from "zod";
 import { resolveSubscription, resourceGraph } from "../../client.js";
 import { subscriptionSchema } from "../../tools/shared.js";

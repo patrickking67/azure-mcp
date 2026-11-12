@@ -13,6 +13,10 @@ All notable changes to this project are listed here. The format follows [Keep a 
 
 ### Changed
 
+- Moved from `@modelcontextprotocol/sdk` 1 to the MCP TypeScript SDK 2 split packages (`@modelcontextprotocol/server` 2.4, `@modelcontextprotocol/node` 2.1) and `@modelcontextprotocol/ext-apps` 2.0. Tool names, descriptions and input schemas are byte-identical to the previous release; the input schemas keep the draft-07 dialect they have always declared. The only change in the tool listing is that entries no longer carry `execution.taskSupport`, which SDK 2 dropped along with experimental tasks.
+- An argument that fails validation is still refused with `isError`, but the SDK words the message differently (`confirm: Invalid input: expected true` instead of `MCP error -32602: ... expected true at confirm`).
+- The server still speaks protocol revisions up to 2025-11-25. Serving the 2026-07-28 revision is a separate change.
+- CI also tests Node 26, the version the Docker image runs.
 - MCP Apps views: WCAG AA status colours in light and dark, visible focus rings, keyboard-sortable headers with `aria-sort`, labelled filters, an action column that stays in view on narrow screens, and empty and error states that say what to do next.
 - `npm run check` runs everything CI runs (typecheck, lint, tests, manifest check); the type-check-only script is now `npm run typecheck`.
 
@@ -25,6 +29,7 @@ All notable changes to this project are listed here. The format follows [Keep a 
 
 - ESLint (`npm run lint`) with typescript-eslint type-checked rules, run by `npm run check` and CI.
 - A test that a write without `confirm: true` is refused even with both gates open.
+- A snapshot test of the full tool listing (names, descriptions, input schemas, annotations), so an upgrade cannot change what clients see without the diff showing up in review.
 - `AGENTS.md`, `CLAUDE.md`, `llms.txt`, this changelog, `.editorconfig`, `.gitattributes`, CODEOWNERS, Dependabot, issue and PR templates, and a `.claude/launch.json` for the local HTTP transport.
 
 ## [1.0.0] - 2026-10-26

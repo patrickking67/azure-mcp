@@ -19,8 +19,8 @@ import { fileURLToPath } from 'node:url';
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const check = process.argv.includes('--check');
 const require = createRequire(resolve(ROOT, 'package.json'));
-const { Client } = require('@modelcontextprotocol/sdk/client/index.js');
-const { StdioClientTransport } = require('@modelcontextprotocol/sdk/client/stdio.js');
+const { Client } = require('@modelcontextprotocol/client');
+const { StdioClientTransport } = require('@modelcontextprotocol/client/stdio');
 
 const manifestPath = resolve(ROOT, 'manifest.json');
 const manifest = JSON.parse(readFileSync(manifestPath, 'utf8'));

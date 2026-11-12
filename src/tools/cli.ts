@@ -11,7 +11,7 @@
 // act as an on-behalf-of remote caller, so in that mode these tools refuse rather than run as the
 // server.
 
-import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import type { McpServer } from "@modelcontextprotocol/server";
 import { z } from "zod";
 import { AZ_LABEL, azRun, cliSandboxDir, useIsolatedCliConfig } from "../az.js";
 import { authMode, BASE_AUTH_MODE, CLIENT_ID, MANAGED_IDENTITY_CLIENT_ID, servicePrincipalSecret, TENANT_ID } from "../auth.js";

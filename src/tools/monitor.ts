@@ -1,6 +1,6 @@
 // Azure Monitor: metrics, metric definitions, diagnostic settings, and Log Analytics KQL.
 
-import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import type { McpServer } from "@modelcontextprotocol/server";
 import { z } from "zod";
 import { armRequest, dig, formatResult, httpJson, isJsonObject, LOG_ANALYTICS_BASE, LOG_ANALYTICS_RESOURCE, propsOf, type JsonObject } from "../client.js";
 import { defineTool } from "./define.js";
