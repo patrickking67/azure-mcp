@@ -30,7 +30,8 @@ Security is the point of the project. The gates and the CLI classifier must neve
 | `src/apps/` | MCP Apps views: `shell.ts` (shared HTML, CSS, table, boot), `views/*.ts` |
 | `src/apps/generated/runtime.ts` | inlined ext-apps browser runtime (generated) |
 | `src/auth.ts`, `src/entra.ts`, `src/client.ts` | tokens, Entra validation, ARM/Graph/Key Vault/Log Analytics clients |
-| `test/` | `cli-policy.test.mjs` (classifier), `smoke.test.mjs` (stdio + fake az), `remote.test.mjs`, `az.test.mjs`, `client.test.mjs` |
+| `test/` | `cli-policy.test.mjs` (classifier), `smoke.test.mjs` (stdio + fake az), `tool-listing.test.mjs` (full `tools/list` snapshot), `remote.test.mjs`, `az.test.mjs`, `client.test.mjs` |
+| `test/fixtures/tool-listing.json` | the pinned tool listing; rewrite on purpose with `UPDATE_TOOL_LISTING=1 node --test test/tool-listing.test.mjs` |
 | `test/fixtures/fake-az.mjs` | stands in for `az`; echoes argv as JSON |
 | `plugin/` | Claude Code / Codex plugin; `plugin/server/azure-mcp.mjs` is a committed esbuild bundle |
 | `manifest.json` | `.mcpb` manifest; its tool list is synced from the server |

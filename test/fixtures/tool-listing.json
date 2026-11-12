@@ -1,0 +1,3469 @@
+[
+  {
+    "name": "Status_Server",
+    "title": "Server Status",
+    "description": "Report this server's configuration without calling Azure: version, auth mode, which settings are filled in, the Azure CLI it found, and the write gate. Call this first when tools fail or seem to be missing.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {},
+      "$schema": "http://json-schema.org/draft-07/schema#"
+    },
+    "annotations": {
+      "title": "Server Status",
+      "readOnlyHint": true,
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": true
+    },
+    "execution": {
+      "taskSupport": "forbidden"
+    }
+  },
+  {
+    "name": "Status_Gate",
+    "title": "Write Gate Status",
+    "description": "Report whether write and destructive tools are enabled, and which setting opens each gate. Use it to explain a refusal.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {},
+      "$schema": "http://json-schema.org/draft-07/schema#"
+    },
+    "annotations": {
+      "title": "Write Gate Status",
+      "readOnlyHint": true,
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": true
+    },
+    "execution": {
+      "taskSupport": "forbidden"
+    }
+  },
+  {
+    "name": "Test_Connection",
+    "title": "Test Connection",
+    "description": "Check Azure authentication (Azure CLI, service principal, managed identity or on-behalf-of) and report the identity and reachable subscriptions. CLI: `az account show`.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {},
+      "$schema": "http://json-schema.org/draft-07/schema#"
+    },
+    "annotations": {
+      "title": "Test Connection",
+      "readOnlyHint": true,
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": true
+    },
+    "execution": {
+      "taskSupport": "forbidden"
+    }
+  },
+  {
+    "name": "List_Subscriptions",
+    "title": "List Subscriptions",
+    "description": "List subscriptions the signed-in identity can access. CLI: `az account list`.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {},
+      "$schema": "http://json-schema.org/draft-07/schema#"
+    },
+    "annotations": {
+      "title": "List Subscriptions",
+      "readOnlyHint": true,
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": true
+    },
+    "execution": {
+      "taskSupport": "forbidden"
+    }
+  },
+  {
+    "name": "List_Resource_Groups",
+    "title": "List Resource Groups",
+    "description": "List resource groups in a subscription. CLI: `az group list`.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "subscription_id": {
+          "description": "Azure subscription id. Omit to use the configured default or the az default subscription.",
+          "type": "string"
+        }
+      },
+      "$schema": "http://json-schema.org/draft-07/schema#"
+    },
+    "annotations": {
+      "title": "List Resource Groups",
+      "readOnlyHint": true,
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": true
+    },
+    "execution": {
+      "taskSupport": "forbidden"
+    }
+  },
+  {
+    "name": "List_Resources",
+    "title": "List Resources",
+    "description": "List resources in a subscription, optionally filtered by type or resource group. CLI: `az resource list`.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "subscription_id": {
+          "description": "Azure subscription id. Omit to use the configured default or the az default subscription.",
+          "type": "string"
+        },
+        "resource_type": {
+          "description": "Filter by ARM type, e.g. 'Microsoft.Compute/virtualMachines'.",
+          "type": "string"
+        },
+        "resource_group": {
+          "description": "Filter by resource group name.",
+          "type": "string"
+        }
+      },
+      "$schema": "http://json-schema.org/draft-07/schema#"
+    },
+    "annotations": {
+      "title": "List Resources",
+      "readOnlyHint": true,
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": true
+    },
+    "execution": {
+      "taskSupport": "forbidden"
+    }
+  },
+  {
+    "name": "Get_Resource",
+    "title": "Get Resource",
+    "description": "Get any resource by its full ARM resource id. The api-version is negotiated automatically unless provided. CLI: `az resource show --ids <id>`.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "resource_id": {
+          "type": "string",
+          "description": "Full ARM resource id (starts with /subscriptions/...)."
+        },
+        "api_version": {
+          "description": "Optional ARM api-version. If omitted or wrong, the supported version is auto-negotiated.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "resource_id"
+      ],
+      "$schema": "http://json-schema.org/draft-07/schema#"
+    },
+    "annotations": {
+      "title": "Get Resource",
+      "readOnlyHint": true,
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": true
+    },
+    "execution": {
+      "taskSupport": "forbidden"
+    }
+  },
+  {
+    "name": "Resource_Graph_Query",
+    "title": "Resource Graph Query",
+    "description": "Run a Resource Graph (KQL) query across subscription resources. CLI: `az graph query -q <kql>`.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "subscription_id": {
+          "description": "Azure subscription id. Omit to use the configured default or the az default subscription.",
+          "type": "string"
+        },
+        "query": {
+          "type": "string",
+          "description": "Resource Graph KQL query, e.g. \"Resources | project name, type | limit 5\"."
+        },
+        "all_subscriptions": {
+          "description": "Query every subscription this identity can read instead of one.",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "query"
+      ],
+      "$schema": "http://json-schema.org/draft-07/schema#"
+    },
+    "annotations": {
+      "title": "Resource Graph Query",
+      "readOnlyHint": true,
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": true
+    },
+    "execution": {
+      "taskSupport": "forbidden"
+    }
+  },
+  {
+    "name": "ARM_GET",
+    "title": "ARM GET",
+    "description": "Perform a read-only GET against any Azure Resource Manager path (GET only; no writes). CLI: `az rest --method get --uri <path>`.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "path": {
+          "type": "string",
+          "description": "ARM path beginning with '/', e.g. /subscriptions/{id}/resourceGroups. GET only."
+        },
+        "api_version": {
+          "type": "string",
+          "description": "ARM api-version for the path, e.g. 2024-04-01."
+        },
+        "query": {
+          "description": "Optional query string parameters as key/value pairs (api-version is added automatically).",
+          "type": "object",
+          "propertyNames": {
+            "type": "string"
+          },
+          "additionalProperties": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "path",
+        "api_version"
+      ],
+      "$schema": "http://json-schema.org/draft-07/schema#"
+    },
+    "annotations": {
+      "title": "ARM GET",
+      "readOnlyHint": true,
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": true
+    },
+    "execution": {
+      "taskSupport": "forbidden"
+    }
+  },
+  {
+    "name": "ARM_Request",
+    "title": "ARM Request",
+    "description": "Escape hatch: perform a write (POST, PUT, PATCH, DELETE) against any Azure Resource Manager path. Use the specific tools when one exists. DELETE needs the destructive gate; the other methods need write mode. CLI: `az rest --method <post|put|patch|delete> --uri <path>`.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "method": {
+          "type": "string",
+          "enum": [
+            "POST",
+            "PUT",
+            "PATCH",
+            "DELETE"
+          ],
+          "description": "HTTP method. For reads use the ARM GET tool."
+        },
+        "path": {
+          "type": "string",
+          "description": "ARM path beginning with '/'."
+        },
+        "api_version": {
+          "type": "string",
+          "description": "ARM api-version for the path."
+        },
+        "body": {
+          "description": "Optional JSON request body.",
+          "type": "object",
+          "propertyNames": {
+            "type": "string"
+          },
+          "additionalProperties": {}
+        },
+        "query": {
+          "description": "Optional query string parameters (api-version is added automatically).",
+          "type": "object",
+          "propertyNames": {
+            "type": "string"
+          },
+          "additionalProperties": {
+            "type": "string"
+          }
+        },
+        "confirm": {
+          "type": "boolean",
+          "const": true,
+          "description": "Must be exactly true. Acknowledges that this call changes live Azure resources. There is no dry run: if this is set, the change is made."
+        }
+      },
+      "required": [
+        "method",
+        "path",
+        "api_version",
+        "confirm"
+      ],
+      "$schema": "http://json-schema.org/draft-07/schema#"
+    },
+    "annotations": {
+      "title": "ARM Request",
+      "readOnlyHint": false,
+      "destructiveHint": true,
+      "idempotentHint": false,
+      "openWorldHint": true
+    },
+    "execution": {
+      "taskSupport": "forbidden"
+    },
+    "_meta": {
+      "anthropic/requiresUserInteraction": true
+    }
+  },
+  {
+    "name": "List_Locations",
+    "title": "List Locations",
+    "description": "List Azure regions available to a subscription. CLI: `az account list-locations`.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "subscription_id": {
+          "description": "Azure subscription id. Omit to use the configured default or the az default subscription.",
+          "type": "string"
+        }
+      },
+      "$schema": "http://json-schema.org/draft-07/schema#"
+    },
+    "annotations": {
+      "title": "List Locations",
+      "readOnlyHint": true,
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": true
+    },
+    "execution": {
+      "taskSupport": "forbidden"
+    }
+  },
+  {
+    "name": "List_Storage_Accounts",
+    "title": "List Storage Accounts",
+    "description": "List storage accounts in a subscription. CLI: `az storage account list`.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "subscription_id": {
+          "description": "Azure subscription id. Omit to use the configured default or the az default subscription.",
+          "type": "string"
+        }
+      },
+      "$schema": "http://json-schema.org/draft-07/schema#"
+    },
+    "annotations": {
+      "title": "List Storage Accounts",
+      "readOnlyHint": true,
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": true
+    },
+    "execution": {
+      "taskSupport": "forbidden"
+    }
+  },
+  {
+    "name": "List_Web_Apps",
+    "title": "List Web Apps",
+    "description": "List App Service web apps and function apps in a subscription. CLI: `az webapp list`.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "subscription_id": {
+          "description": "Azure subscription id. Omit to use the configured default or the az default subscription.",
+          "type": "string"
+        }
+      },
+      "$schema": "http://json-schema.org/draft-07/schema#"
+    },
+    "annotations": {
+      "title": "List Web Apps",
+      "readOnlyHint": true,
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": true
+    },
+    "execution": {
+      "taskSupport": "forbidden"
+    }
+  },
+  {
+    "name": "List_Function_Apps",
+    "title": "List Function Apps",
+    "description": "List Azure Functions apps in a subscription. CLI: `az functionapp list`.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "subscription_id": {
+          "description": "Azure subscription id. Omit to use the configured default or the az default subscription.",
+          "type": "string"
+        }
+      },
+      "$schema": "http://json-schema.org/draft-07/schema#"
+    },
+    "annotations": {
+      "title": "List Function Apps",
+      "readOnlyHint": true,
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": true
+    },
+    "execution": {
+      "taskSupport": "forbidden"
+    }
+  },
+  {
+    "name": "List_App_Service_Plans",
+    "title": "List App Service Plans",
+    "description": "List App Service plans in a subscription. CLI: `az appservice plan list`.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "subscription_id": {
+          "description": "Azure subscription id. Omit to use the configured default or the az default subscription.",
+          "type": "string"
+        }
+      },
+      "$schema": "http://json-schema.org/draft-07/schema#"
+    },
+    "annotations": {
+      "title": "List App Service Plans",
+      "readOnlyHint": true,
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": true
+    },
+    "execution": {
+      "taskSupport": "forbidden"
+    }
+  },
+  {
+    "name": "List_Static_Web_Apps",
+    "title": "List Static Web Apps",
+    "description": "List Static Web Apps in a subscription. CLI: `az staticwebapp list`.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "subscription_id": {
+          "description": "Azure subscription id. Omit to use the configured default or the az default subscription.",
+          "type": "string"
+        }
+      },
+      "$schema": "http://json-schema.org/draft-07/schema#"
+    },
+    "annotations": {
+      "title": "List Static Web Apps",
+      "readOnlyHint": true,
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": true
+    },
+    "execution": {
+      "taskSupport": "forbidden"
+    }
+  },
+  {
+    "name": "List_SQL_Servers",
+    "title": "List SQL Servers",
+    "description": "List Azure SQL logical servers in a subscription. CLI: `az sql server list`.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "subscription_id": {
+          "description": "Azure subscription id. Omit to use the configured default or the az default subscription.",
+          "type": "string"
+        }
+      },
+      "$schema": "http://json-schema.org/draft-07/schema#"
+    },
+    "annotations": {
+      "title": "List SQL Servers",
+      "readOnlyHint": true,
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": true
+    },
+    "execution": {
+      "taskSupport": "forbidden"
+    }
+  },
+  {
+    "name": "List_Cosmos_DB_Accounts",
+    "title": "List Cosmos DB Accounts",
+    "description": "List Azure Cosmos DB database accounts in a subscription. CLI: `az cosmosdb list`.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "subscription_id": {
+          "description": "Azure subscription id. Omit to use the configured default or the az default subscription.",
+          "type": "string"
+        }
+      },
+      "$schema": "http://json-schema.org/draft-07/schema#"
+    },
+    "annotations": {
+      "title": "List Cosmos DB Accounts",
+      "readOnlyHint": true,
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": true
+    },
+    "execution": {
+      "taskSupport": "forbidden"
+    }
+  },
+  {
+    "name": "List_PostgreSQL_Servers",
+    "title": "List PostgreSQL Servers",
+    "description": "List Azure Database for PostgreSQL flexible servers in a subscription. CLI: `az postgres flexible-server list`.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "subscription_id": {
+          "description": "Azure subscription id. Omit to use the configured default or the az default subscription.",
+          "type": "string"
+        }
+      },
+      "$schema": "http://json-schema.org/draft-07/schema#"
+    },
+    "annotations": {
+      "title": "List PostgreSQL Servers",
+      "readOnlyHint": true,
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": true
+    },
+    "execution": {
+      "taskSupport": "forbidden"
+    }
+  },
+  {
+    "name": "List_MySQL_Servers",
+    "title": "List MySQL Servers",
+    "description": "List Azure Database for MySQL flexible servers in a subscription. CLI: `az mysql flexible-server list`.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "subscription_id": {
+          "description": "Azure subscription id. Omit to use the configured default or the az default subscription.",
+          "type": "string"
+        }
+      },
+      "$schema": "http://json-schema.org/draft-07/schema#"
+    },
+    "annotations": {
+      "title": "List MySQL Servers",
+      "readOnlyHint": true,
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": true
+    },
+    "execution": {
+      "taskSupport": "forbidden"
+    }
+  },
+  {
+    "name": "List_Redis_Caches",
+    "title": "List Redis Caches",
+    "description": "List Azure Cache for Redis instances in a subscription. CLI: `az redis list`.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "subscription_id": {
+          "description": "Azure subscription id. Omit to use the configured default or the az default subscription.",
+          "type": "string"
+        }
+      },
+      "$schema": "http://json-schema.org/draft-07/schema#"
+    },
+    "annotations": {
+      "title": "List Redis Caches",
+      "readOnlyHint": true,
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": true
+    },
+    "execution": {
+      "taskSupport": "forbidden"
+    }
+  },
+  {
+    "name": "List_Key_Vaults",
+    "title": "List Key Vaults",
+    "description": "List key vaults in a subscription. CLI: `az keyvault list`.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "subscription_id": {
+          "description": "Azure subscription id. Omit to use the configured default or the az default subscription.",
+          "type": "string"
+        }
+      },
+      "$schema": "http://json-schema.org/draft-07/schema#"
+    },
+    "annotations": {
+      "title": "List Key Vaults",
+      "readOnlyHint": true,
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": true
+    },
+    "execution": {
+      "taskSupport": "forbidden"
+    }
+  },
+  {
+    "name": "List_AKS_Clusters",
+    "title": "List AKS Clusters",
+    "description": "List AKS managed clusters in a subscription. CLI: `az aks list`.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "subscription_id": {
+          "description": "Azure subscription id. Omit to use the configured default or the az default subscription.",
+          "type": "string"
+        }
+      },
+      "$schema": "http://json-schema.org/draft-07/schema#"
+    },
+    "annotations": {
+      "title": "List AKS Clusters",
+      "readOnlyHint": true,
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": true
+    },
+    "execution": {
+      "taskSupport": "forbidden"
+    }
+  },
+  {
+    "name": "List_Container_Registries",
+    "title": "List Container Registries",
+    "description": "List Azure Container Registry instances in a subscription. CLI: `az acr list`.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "subscription_id": {
+          "description": "Azure subscription id. Omit to use the configured default or the az default subscription.",
+          "type": "string"
+        }
+      },
+      "$schema": "http://json-schema.org/draft-07/schema#"
+    },
+    "annotations": {
+      "title": "List Container Registries",
+      "readOnlyHint": true,
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": true
+    },
+    "execution": {
+      "taskSupport": "forbidden"
+    }
+  },
+  {
+    "name": "List_Container_Apps",
+    "title": "List Container Apps",
+    "description": "List Azure Container Apps in a subscription. CLI: `az containerapp list`.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "subscription_id": {
+          "description": "Azure subscription id. Omit to use the configured default or the az default subscription.",
+          "type": "string"
+        }
+      },
+      "$schema": "http://json-schema.org/draft-07/schema#"
+    },
+    "annotations": {
+      "title": "List Container Apps",
+      "readOnlyHint": true,
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": true
+    },
+    "execution": {
+      "taskSupport": "forbidden"
+    }
+  },
+  {
+    "name": "List_Container_Instances",
+    "title": "List Container Instances",
+    "description": "List Azure Container Instances container groups in a subscription. CLI: `az container list`.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "subscription_id": {
+          "description": "Azure subscription id. Omit to use the configured default or the az default subscription.",
+          "type": "string"
+        }
+      },
+      "$schema": "http://json-schema.org/draft-07/schema#"
+    },
+    "annotations": {
+      "title": "List Container Instances",
+      "readOnlyHint": true,
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": true
+    },
+    "execution": {
+      "taskSupport": "forbidden"
+    }
+  },
+  {
+    "name": "List_Disks",
+    "title": "List Disks",
+    "description": "List managed disks in a subscription. CLI: `az disk list`.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "subscription_id": {
+          "description": "Azure subscription id. Omit to use the configured default or the az default subscription.",
+          "type": "string"
+        }
+      },
+      "$schema": "http://json-schema.org/draft-07/schema#"
+    },
+    "annotations": {
+      "title": "List Disks",
+      "readOnlyHint": true,
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": true
+    },
+    "execution": {
+      "taskSupport": "forbidden"
+    }
+  },
+  {
+    "name": "List_Snapshots",
+    "title": "List Snapshots",
+    "description": "List managed disk snapshots in a subscription. CLI: `az snapshot list`.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "subscription_id": {
+          "description": "Azure subscription id. Omit to use the configured default or the az default subscription.",
+          "type": "string"
+        }
+      },
+      "$schema": "http://json-schema.org/draft-07/schema#"
+    },
+    "annotations": {
+      "title": "List Snapshots",
+      "readOnlyHint": true,
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": true
+    },
+    "execution": {
+      "taskSupport": "forbidden"
+    }
+  },
+  {
+    "name": "List_VM_Images",
+    "title": "List VM Images",
+    "description": "List custom VM images in a subscription. CLI: `az image list`.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "subscription_id": {
+          "description": "Azure subscription id. Omit to use the configured default or the az default subscription.",
+          "type": "string"
+        }
+      },
+      "$schema": "http://json-schema.org/draft-07/schema#"
+    },
+    "annotations": {
+      "title": "List VM Images",
+      "readOnlyHint": true,
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": true
+    },
+    "execution": {
+      "taskSupport": "forbidden"
+    }
+  },
+  {
+    "name": "List_VM_Scale_Sets",
+    "title": "List VM Scale Sets",
+    "description": "List virtual machine scale sets in a subscription. CLI: `az vmss list`.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "subscription_id": {
+          "description": "Azure subscription id. Omit to use the configured default or the az default subscription.",
+          "type": "string"
+        }
+      },
+      "$schema": "http://json-schema.org/draft-07/schema#"
+    },
+    "annotations": {
+      "title": "List VM Scale Sets",
+      "readOnlyHint": true,
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": true
+    },
+    "execution": {
+      "taskSupport": "forbidden"
+    }
+  },
+  {
+    "name": "List_Public_IPs",
+    "title": "List Public IPs",
+    "description": "List public IP addresses in a subscription. CLI: `az network public-ip list`.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "subscription_id": {
+          "description": "Azure subscription id. Omit to use the configured default or the az default subscription.",
+          "type": "string"
+        }
+      },
+      "$schema": "http://json-schema.org/draft-07/schema#"
+    },
+    "annotations": {
+      "title": "List Public IPs",
+      "readOnlyHint": true,
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": true
+    },
+    "execution": {
+      "taskSupport": "forbidden"
+    }
+  },
+  {
+    "name": "List_Network_Security_Groups",
+    "title": "List Network Security Groups",
+    "description": "List network security groups in a subscription. CLI: `az network nsg list`.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "subscription_id": {
+          "description": "Azure subscription id. Omit to use the configured default or the az default subscription.",
+          "type": "string"
+        }
+      },
+      "$schema": "http://json-schema.org/draft-07/schema#"
+    },
+    "annotations": {
+      "title": "List Network Security Groups",
+      "readOnlyHint": true,
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": true
+    },
+    "execution": {
+      "taskSupport": "forbidden"
+    }
+  },
+  {
+    "name": "List_Virtual_Networks",
+    "title": "List Virtual Networks",
+    "description": "List virtual networks in a subscription. CLI: `az network vnet list`.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "subscription_id": {
+          "description": "Azure subscription id. Omit to use the configured default or the az default subscription.",
+          "type": "string"
+        }
+      },
+      "$schema": "http://json-schema.org/draft-07/schema#"
+    },
+    "annotations": {
+      "title": "List Virtual Networks",
+      "readOnlyHint": true,
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": true
+    },
+    "execution": {
+      "taskSupport": "forbidden"
+    }
+  },
+  {
+    "name": "List_Network_Interfaces",
+    "title": "List Network Interfaces",
+    "description": "List network interfaces (NICs) in a subscription. CLI: `az network nic list`.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "subscription_id": {
+          "description": "Azure subscription id. Omit to use the configured default or the az default subscription.",
+          "type": "string"
+        }
+      },
+      "$schema": "http://json-schema.org/draft-07/schema#"
+    },
+    "annotations": {
+      "title": "List Network Interfaces",
+      "readOnlyHint": true,
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": true
+    },
+    "execution": {
+      "taskSupport": "forbidden"
+    }
+  },
+  {
+    "name": "List_Load_Balancers",
+    "title": "List Load Balancers",
+    "description": "List load balancers in a subscription. CLI: `az network lb list`.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "subscription_id": {
+          "description": "Azure subscription id. Omit to use the configured default or the az default subscription.",
+          "type": "string"
+        }
+      },
+      "$schema": "http://json-schema.org/draft-07/schema#"
+    },
+    "annotations": {
+      "title": "List Load Balancers",
+      "readOnlyHint": true,
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": true
+    },
+    "execution": {
+      "taskSupport": "forbidden"
+    }
+  },
+  {
+    "name": "List_Application_Gateways",
+    "title": "List Application Gateways",
+    "description": "List application gateways in a subscription. CLI: `az network application-gateway list`.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "subscription_id": {
+          "description": "Azure subscription id. Omit to use the configured default or the az default subscription.",
+          "type": "string"
+        }
+      },
+      "$schema": "http://json-schema.org/draft-07/schema#"
+    },
+    "annotations": {
+      "title": "List Application Gateways",
+      "readOnlyHint": true,
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": true
+    },
+    "execution": {
+      "taskSupport": "forbidden"
+    }
+  },
+  {
+    "name": "List_Route_Tables",
+    "title": "List Route Tables",
+    "description": "List route tables in a subscription. CLI: `az network route-table list`.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "subscription_id": {
+          "description": "Azure subscription id. Omit to use the configured default or the az default subscription.",
+          "type": "string"
+        }
+      },
+      "$schema": "http://json-schema.org/draft-07/schema#"
+    },
+    "annotations": {
+      "title": "List Route Tables",
+      "readOnlyHint": true,
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": true
+    },
+    "execution": {
+      "taskSupport": "forbidden"
+    }
+  },
+  {
+    "name": "List_DNS_Zones",
+    "title": "List DNS Zones",
+    "description": "List public and private DNS zones in a subscription. CLI: `az network dns zone list`.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "subscription_id": {
+          "description": "Azure subscription id. Omit to use the configured default or the az default subscription.",
+          "type": "string"
+        }
+      },
+      "$schema": "http://json-schema.org/draft-07/schema#"
+    },
+    "annotations": {
+      "title": "List DNS Zones",
+      "readOnlyHint": true,
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": true
+    },
+    "execution": {
+      "taskSupport": "forbidden"
+    }
+  },
+  {
+    "name": "List_Private_Endpoints",
+    "title": "List Private Endpoints",
+    "description": "List private endpoints in a subscription. CLI: `az network private-endpoint list`.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "subscription_id": {
+          "description": "Azure subscription id. Omit to use the configured default or the az default subscription.",
+          "type": "string"
+        }
+      },
+      "$schema": "http://json-schema.org/draft-07/schema#"
+    },
+    "annotations": {
+      "title": "List Private Endpoints",
+      "readOnlyHint": true,
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": true
+    },
+    "execution": {
+      "taskSupport": "forbidden"
+    }
+  },
+  {
+    "name": "List_Managed_Identities",
+    "title": "List Managed Identities",
+    "description": "List user-assigned managed identities in a subscription. CLI: `az identity list`.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "subscription_id": {
+          "description": "Azure subscription id. Omit to use the configured default or the az default subscription.",
+          "type": "string"
+        }
+      },
+      "$schema": "http://json-schema.org/draft-07/schema#"
+    },
+    "annotations": {
+      "title": "List Managed Identities",
+      "readOnlyHint": true,
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": true
+    },
+    "execution": {
+      "taskSupport": "forbidden"
+    }
+  },
+  {
+    "name": "List_Log_Analytics_Workspaces",
+    "title": "List Log Analytics Workspaces",
+    "description": "List Log Analytics workspaces in a subscription. The workspace customer_id is what Query Log Analytics expects. CLI: `az monitor log-analytics workspace list`.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "subscription_id": {
+          "description": "Azure subscription id. Omit to use the configured default or the az default subscription.",
+          "type": "string"
+        }
+      },
+      "$schema": "http://json-schema.org/draft-07/schema#"
+    },
+    "annotations": {
+      "title": "List Log Analytics Workspaces",
+      "readOnlyHint": true,
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": true
+    },
+    "execution": {
+      "taskSupport": "forbidden"
+    }
+  },
+  {
+    "name": "List_Application_Insights",
+    "title": "List Application Insights",
+    "description": "List Application Insights components in a subscription. CLI: `az monitor app-insights component show`.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "subscription_id": {
+          "description": "Azure subscription id. Omit to use the configured default or the az default subscription.",
+          "type": "string"
+        }
+      },
+      "$schema": "http://json-schema.org/draft-07/schema#"
+    },
+    "annotations": {
+      "title": "List Application Insights",
+      "readOnlyHint": true,
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": true
+    },
+    "execution": {
+      "taskSupport": "forbidden"
+    }
+  },
+  {
+    "name": "List_Event_Hub_Namespaces",
+    "title": "List Event Hub Namespaces",
+    "description": "List Event Hubs namespaces in a subscription. CLI: `az eventhubs namespace list`.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "subscription_id": {
+          "description": "Azure subscription id. Omit to use the configured default or the az default subscription.",
+          "type": "string"
+        }
+      },
+      "$schema": "http://json-schema.org/draft-07/schema#"
+    },
+    "annotations": {
+      "title": "List Event Hub Namespaces",
+      "readOnlyHint": true,
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": true
+    },
+    "execution": {
+      "taskSupport": "forbidden"
+    }
+  },
+  {
+    "name": "List_Service_Bus_Namespaces",
+    "title": "List Service Bus Namespaces",
+    "description": "List Service Bus namespaces in a subscription. CLI: `az servicebus namespace list`.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "subscription_id": {
+          "description": "Azure subscription id. Omit to use the configured default or the az default subscription.",
+          "type": "string"
+        }
+      },
+      "$schema": "http://json-schema.org/draft-07/schema#"
+    },
+    "annotations": {
+      "title": "List Service Bus Namespaces",
+      "readOnlyHint": true,
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": true
+    },
+    "execution": {
+      "taskSupport": "forbidden"
+    }
+  },
+  {
+    "name": "List_Alert_Rules",
+    "title": "List Alert Rules",
+    "description": "List metric alert rules configured in a subscription. CLI: `az monitor metrics alert list`.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "subscription_id": {
+          "description": "Azure subscription id. Omit to use the configured default or the az default subscription.",
+          "type": "string"
+        }
+      },
+      "$schema": "http://json-schema.org/draft-07/schema#"
+    },
+    "annotations": {
+      "title": "List Alert Rules",
+      "readOnlyHint": true,
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": true
+    },
+    "execution": {
+      "taskSupport": "forbidden"
+    }
+  },
+  {
+    "name": "List_Fired_Alerts",
+    "title": "List Fired Alerts",
+    "description": "List alerts fired across Azure Monitor for a subscription (Alerts Management). CLI: `az rest --uri /subscriptions/{sub}/providers/Microsoft.AlertsManagement/alerts?api-version=2019-03-01`.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "subscription_id": {
+          "description": "Azure subscription id. Omit to use the configured default or the az default subscription.",
+          "type": "string"
+        }
+      },
+      "$schema": "http://json-schema.org/draft-07/schema#"
+    },
+    "annotations": {
+      "title": "List Fired Alerts",
+      "readOnlyHint": true,
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": true
+    },
+    "execution": {
+      "taskSupport": "forbidden"
+    }
+  },
+  {
+    "name": "List_Security_Alerts",
+    "title": "List Security Alerts",
+    "description": "List Microsoft Defender for Cloud security alerts in a subscription. CLI: `az security alert list`.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "subscription_id": {
+          "description": "Azure subscription id. Omit to use the configured default or the az default subscription.",
+          "type": "string"
+        }
+      },
+      "$schema": "http://json-schema.org/draft-07/schema#"
+    },
+    "annotations": {
+      "title": "List Security Alerts",
+      "readOnlyHint": true,
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": true
+    },
+    "execution": {
+      "taskSupport": "forbidden"
+    }
+  },
+  {
+    "name": "List_Secure_Scores",
+    "title": "List Secure Scores",
+    "description": "List Microsoft Defender for Cloud secure scores for a subscription. CLI: `az security secure-scores list`.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "subscription_id": {
+          "description": "Azure subscription id. Omit to use the configured default or the az default subscription.",
+          "type": "string"
+        }
+      },
+      "$schema": "http://json-schema.org/draft-07/schema#"
+    },
+    "annotations": {
+      "title": "List Secure Scores",
+      "readOnlyHint": true,
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": true
+    },
+    "execution": {
+      "taskSupport": "forbidden"
+    }
+  },
+  {
+    "name": "List_Policy_Assignments",
+    "title": "List Policy Assignments",
+    "description": "List Azure Policy assignments in a subscription. CLI: `az policy assignment list`.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "subscription_id": {
+          "description": "Azure subscription id. Omit to use the configured default or the az default subscription.",
+          "type": "string"
+        }
+      },
+      "$schema": "http://json-schema.org/draft-07/schema#"
+    },
+    "annotations": {
+      "title": "List Policy Assignments",
+      "readOnlyHint": true,
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": true
+    },
+    "execution": {
+      "taskSupport": "forbidden"
+    }
+  },
+  {
+    "name": "List_Budgets",
+    "title": "List Budgets",
+    "description": "List Cost Management budgets for a subscription. CLI: `az consumption budget list`.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "subscription_id": {
+          "description": "Azure subscription id. Omit to use the configured default or the az default subscription.",
+          "type": "string"
+        }
+      },
+      "$schema": "http://json-schema.org/draft-07/schema#"
+    },
+    "annotations": {
+      "title": "List Budgets",
+      "readOnlyHint": true,
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": true
+    },
+    "execution": {
+      "taskSupport": "forbidden"
+    }
+  },
+  {
+    "name": "List_Virtual_Machines",
+    "title": "List Virtual Machines",
+    "description": "List virtual machines in a subscription, optionally with power state. CLI: `az vm list [--show-details]`.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "subscription_id": {
+          "description": "Azure subscription id. Omit to use the configured default or the az default subscription.",
+          "type": "string"
+        },
+        "power_state": {
+          "description": "Also fetch per-VM power state via instanceView. Adds one call per VM.",
+          "type": "boolean"
+        }
+      },
+      "$schema": "http://json-schema.org/draft-07/schema#"
+    },
+    "annotations": {
+      "title": "List Virtual Machines",
+      "readOnlyHint": true,
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": true
+    },
+    "execution": {
+      "taskSupport": "forbidden"
+    }
+  },
+  {
+    "name": "Get_Virtual_Machine",
+    "title": "Get Virtual Machine",
+    "description": "Get a virtual machine with its configuration and current power state. CLI: `az vm show -d -g <rg> -n <vm>`.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "subscription_id": {
+          "description": "Azure subscription id. Omit to use the configured default or the az default subscription.",
+          "type": "string"
+        },
+        "resource_group": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Resource group of the VM."
+        },
+        "vm_name": {
+          "type": "string",
+          "description": "VM name."
+        }
+      },
+      "required": [
+        "resource_group",
+        "vm_name"
+      ],
+      "$schema": "http://json-schema.org/draft-07/schema#"
+    },
+    "annotations": {
+      "title": "Get Virtual Machine",
+      "readOnlyHint": true,
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": true
+    },
+    "execution": {
+      "taskSupport": "forbidden"
+    }
+  },
+  {
+    "name": "Start_VM",
+    "title": "Start VM",
+    "description": "Start a virtual machine. CLI: `az vm start -g <rg> -n <vm>`.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "subscription_id": {
+          "description": "Azure subscription id. Omit to use the configured default or the az default subscription.",
+          "type": "string"
+        },
+        "resource_group": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Resource group of the VM."
+        },
+        "vm_name": {
+          "type": "string",
+          "description": "VM name."
+        },
+        "confirm": {
+          "type": "boolean",
+          "const": true,
+          "description": "Must be exactly true. Acknowledges that this call changes live Azure resources. There is no dry run: if this is set, the change is made."
+        }
+      },
+      "required": [
+        "resource_group",
+        "vm_name",
+        "confirm"
+      ],
+      "$schema": "http://json-schema.org/draft-07/schema#"
+    },
+    "annotations": {
+      "title": "Start VM",
+      "readOnlyHint": false,
+      "destructiveHint": false,
+      "idempotentHint": false,
+      "openWorldHint": true
+    },
+    "execution": {
+      "taskSupport": "forbidden"
+    },
+    "_meta": {
+      "anthropic/requiresUserInteraction": true
+    }
+  },
+  {
+    "name": "Stop_VM",
+    "title": "Stop VM",
+    "description": "Deallocate (stop) a virtual machine to halt compute billing. CLI: `az vm deallocate -g <rg> -n <vm>`.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "subscription_id": {
+          "description": "Azure subscription id. Omit to use the configured default or the az default subscription.",
+          "type": "string"
+        },
+        "resource_group": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Resource group of the VM."
+        },
+        "vm_name": {
+          "type": "string",
+          "description": "VM name."
+        },
+        "confirm": {
+          "type": "boolean",
+          "const": true,
+          "description": "Must be exactly true. Acknowledges that this call changes live Azure resources. There is no dry run: if this is set, the change is made."
+        }
+      },
+      "required": [
+        "resource_group",
+        "vm_name",
+        "confirm"
+      ],
+      "$schema": "http://json-schema.org/draft-07/schema#"
+    },
+    "annotations": {
+      "title": "Stop VM",
+      "readOnlyHint": false,
+      "destructiveHint": true,
+      "idempotentHint": false,
+      "openWorldHint": true
+    },
+    "execution": {
+      "taskSupport": "forbidden"
+    },
+    "_meta": {
+      "anthropic/requiresUserInteraction": true
+    }
+  },
+  {
+    "name": "Restart_VM",
+    "title": "Restart VM",
+    "description": "Restart a virtual machine. CLI: `az vm restart -g <rg> -n <vm>`.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "subscription_id": {
+          "description": "Azure subscription id. Omit to use the configured default or the az default subscription.",
+          "type": "string"
+        },
+        "resource_group": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Resource group of the VM."
+        },
+        "vm_name": {
+          "type": "string",
+          "description": "VM name."
+        },
+        "confirm": {
+          "type": "boolean",
+          "const": true,
+          "description": "Must be exactly true. Acknowledges that this call changes live Azure resources. There is no dry run: if this is set, the change is made."
+        }
+      },
+      "required": [
+        "resource_group",
+        "vm_name",
+        "confirm"
+      ],
+      "$schema": "http://json-schema.org/draft-07/schema#"
+    },
+    "annotations": {
+      "title": "Restart VM",
+      "readOnlyHint": false,
+      "destructiveHint": true,
+      "idempotentHint": false,
+      "openWorldHint": true
+    },
+    "execution": {
+      "taskSupport": "forbidden"
+    },
+    "_meta": {
+      "anthropic/requiresUserInteraction": true
+    }
+  },
+  {
+    "name": "Resize_VM",
+    "title": "Resize VM",
+    "description": "Change a virtual machine's size (SKU). The VM restarts as part of the resize. CLI: `az vm resize -g <rg> -n <vm> --size <size>`.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "subscription_id": {
+          "description": "Azure subscription id. Omit to use the configured default or the az default subscription.",
+          "type": "string"
+        },
+        "resource_group": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Resource group of the VM."
+        },
+        "vm_name": {
+          "type": "string",
+          "description": "VM name."
+        },
+        "vm_size": {
+          "type": "string",
+          "description": "Target size, e.g. Standard_D4s_v5."
+        },
+        "confirm": {
+          "type": "boolean",
+          "const": true,
+          "description": "Must be exactly true. Acknowledges that this call changes live Azure resources. There is no dry run: if this is set, the change is made."
+        }
+      },
+      "required": [
+        "resource_group",
+        "vm_name",
+        "vm_size",
+        "confirm"
+      ],
+      "$schema": "http://json-schema.org/draft-07/schema#"
+    },
+    "annotations": {
+      "title": "Resize VM",
+      "readOnlyHint": false,
+      "destructiveHint": true,
+      "idempotentHint": false,
+      "openWorldHint": true
+    },
+    "execution": {
+      "taskSupport": "forbidden"
+    },
+    "_meta": {
+      "anthropic/requiresUserInteraction": true
+    }
+  },
+  {
+    "name": "Get_Web_App",
+    "title": "Get Web App",
+    "description": "Get an App Service web app or function app with its configuration summary. CLI: `az webapp show -g <rg> -n <app>`.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "subscription_id": {
+          "description": "Azure subscription id. Omit to use the configured default or the az default subscription.",
+          "type": "string"
+        },
+        "resource_group": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Resource group of the app."
+        },
+        "app_name": {
+          "type": "string",
+          "description": "Web app or function app name."
+        }
+      },
+      "required": [
+        "resource_group",
+        "app_name"
+      ],
+      "$schema": "http://json-schema.org/draft-07/schema#"
+    },
+    "annotations": {
+      "title": "Get Web App",
+      "readOnlyHint": true,
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": true
+    },
+    "execution": {
+      "taskSupport": "forbidden"
+    }
+  },
+  {
+    "name": "Start_Web_App",
+    "title": "Start Web App",
+    "description": "Start an App Service web app or function app. CLI: `az webapp start -g <rg> -n <app>`.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "subscription_id": {
+          "description": "Azure subscription id. Omit to use the configured default or the az default subscription.",
+          "type": "string"
+        },
+        "resource_group": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Resource group of the app."
+        },
+        "app_name": {
+          "type": "string",
+          "description": "Web app or function app name."
+        },
+        "confirm": {
+          "type": "boolean",
+          "const": true,
+          "description": "Must be exactly true. Acknowledges that this call changes live Azure resources. There is no dry run: if this is set, the change is made."
+        }
+      },
+      "required": [
+        "resource_group",
+        "app_name",
+        "confirm"
+      ],
+      "$schema": "http://json-schema.org/draft-07/schema#"
+    },
+    "annotations": {
+      "title": "Start Web App",
+      "readOnlyHint": false,
+      "destructiveHint": false,
+      "idempotentHint": false,
+      "openWorldHint": true
+    },
+    "execution": {
+      "taskSupport": "forbidden"
+    },
+    "_meta": {
+      "anthropic/requiresUserInteraction": true
+    }
+  },
+  {
+    "name": "Stop_Web_App",
+    "title": "Stop Web App",
+    "description": "Stop an App Service web app or function app. CLI: `az webapp stop -g <rg> -n <app>`.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "subscription_id": {
+          "description": "Azure subscription id. Omit to use the configured default or the az default subscription.",
+          "type": "string"
+        },
+        "resource_group": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Resource group of the app."
+        },
+        "app_name": {
+          "type": "string",
+          "description": "Web app or function app name."
+        },
+        "confirm": {
+          "type": "boolean",
+          "const": true,
+          "description": "Must be exactly true. Acknowledges that this call changes live Azure resources. There is no dry run: if this is set, the change is made."
+        }
+      },
+      "required": [
+        "resource_group",
+        "app_name",
+        "confirm"
+      ],
+      "$schema": "http://json-schema.org/draft-07/schema#"
+    },
+    "annotations": {
+      "title": "Stop Web App",
+      "readOnlyHint": false,
+      "destructiveHint": true,
+      "idempotentHint": false,
+      "openWorldHint": true
+    },
+    "execution": {
+      "taskSupport": "forbidden"
+    },
+    "_meta": {
+      "anthropic/requiresUserInteraction": true
+    }
+  },
+  {
+    "name": "Restart_Web_App",
+    "title": "Restart Web App",
+    "description": "Restart an App Service web app or function app. CLI: `az webapp restart -g <rg> -n <app>`.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "subscription_id": {
+          "description": "Azure subscription id. Omit to use the configured default or the az default subscription.",
+          "type": "string"
+        },
+        "resource_group": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Resource group of the app."
+        },
+        "app_name": {
+          "type": "string",
+          "description": "Web app or function app name."
+        },
+        "confirm": {
+          "type": "boolean",
+          "const": true,
+          "description": "Must be exactly true. Acknowledges that this call changes live Azure resources. There is no dry run: if this is set, the change is made."
+        }
+      },
+      "required": [
+        "resource_group",
+        "app_name",
+        "confirm"
+      ],
+      "$schema": "http://json-schema.org/draft-07/schema#"
+    },
+    "annotations": {
+      "title": "Restart Web App",
+      "readOnlyHint": false,
+      "destructiveHint": true,
+      "idempotentHint": false,
+      "openWorldHint": true
+    },
+    "execution": {
+      "taskSupport": "forbidden"
+    },
+    "_meta": {
+      "anthropic/requiresUserInteraction": true
+    }
+  },
+  {
+    "name": "Get_AKS_Cluster",
+    "title": "Get AKS Cluster",
+    "description": "Get an AKS managed cluster with node pool and network summary. CLI: `az aks show -g <rg> -n <cluster>`.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "subscription_id": {
+          "description": "Azure subscription id. Omit to use the configured default or the az default subscription.",
+          "type": "string"
+        },
+        "resource_group": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Resource group of the cluster."
+        },
+        "cluster_name": {
+          "type": "string",
+          "description": "AKS cluster name."
+        }
+      },
+      "required": [
+        "resource_group",
+        "cluster_name"
+      ],
+      "$schema": "http://json-schema.org/draft-07/schema#"
+    },
+    "annotations": {
+      "title": "Get AKS Cluster",
+      "readOnlyHint": true,
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": true
+    },
+    "execution": {
+      "taskSupport": "forbidden"
+    }
+  },
+  {
+    "name": "Start_AKS_Cluster",
+    "title": "Start AKS Cluster",
+    "description": "Start a stopped AKS cluster. CLI: `az aks start -g <rg> -n <cluster>`.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "subscription_id": {
+          "description": "Azure subscription id. Omit to use the configured default or the az default subscription.",
+          "type": "string"
+        },
+        "resource_group": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Resource group of the cluster."
+        },
+        "cluster_name": {
+          "type": "string",
+          "description": "AKS cluster name."
+        },
+        "confirm": {
+          "type": "boolean",
+          "const": true,
+          "description": "Must be exactly true. Acknowledges that this call changes live Azure resources. There is no dry run: if this is set, the change is made."
+        }
+      },
+      "required": [
+        "resource_group",
+        "cluster_name",
+        "confirm"
+      ],
+      "$schema": "http://json-schema.org/draft-07/schema#"
+    },
+    "annotations": {
+      "title": "Start AKS Cluster",
+      "readOnlyHint": false,
+      "destructiveHint": false,
+      "idempotentHint": false,
+      "openWorldHint": true
+    },
+    "execution": {
+      "taskSupport": "forbidden"
+    },
+    "_meta": {
+      "anthropic/requiresUserInteraction": true
+    }
+  },
+  {
+    "name": "Stop_AKS_Cluster",
+    "title": "Stop AKS Cluster",
+    "description": "Stop a running AKS cluster to pause compute billing. CLI: `az aks stop -g <rg> -n <cluster>`.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "subscription_id": {
+          "description": "Azure subscription id. Omit to use the configured default or the az default subscription.",
+          "type": "string"
+        },
+        "resource_group": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Resource group of the cluster."
+        },
+        "cluster_name": {
+          "type": "string",
+          "description": "AKS cluster name."
+        },
+        "confirm": {
+          "type": "boolean",
+          "const": true,
+          "description": "Must be exactly true. Acknowledges that this call changes live Azure resources. There is no dry run: if this is set, the change is made."
+        }
+      },
+      "required": [
+        "resource_group",
+        "cluster_name",
+        "confirm"
+      ],
+      "$schema": "http://json-schema.org/draft-07/schema#"
+    },
+    "annotations": {
+      "title": "Stop AKS Cluster",
+      "readOnlyHint": false,
+      "destructiveHint": true,
+      "idempotentHint": false,
+      "openWorldHint": true
+    },
+    "execution": {
+      "taskSupport": "forbidden"
+    },
+    "_meta": {
+      "anthropic/requiresUserInteraction": true
+    }
+  },
+  {
+    "name": "Resource_Health",
+    "title": "Resource Health",
+    "description": "Report availability status for resources in a subscription. CLI: `az rest --uri /subscriptions/{sub}/providers/Microsoft.ResourceHealth/availabilityStatuses?api-version=2020-05-01`.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "subscription_id": {
+          "description": "Azure subscription id. Omit to use the configured default or the az default subscription.",
+          "type": "string"
+        }
+      },
+      "$schema": "http://json-schema.org/draft-07/schema#"
+    },
+    "annotations": {
+      "title": "Resource Health",
+      "readOnlyHint": true,
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": true
+    },
+    "execution": {
+      "taskSupport": "forbidden"
+    }
+  },
+  {
+    "name": "List_Advisor_Recommendations",
+    "title": "List Advisor Recommendations",
+    "description": "List Azure Advisor recommendations for a subscription, optionally filtered by category. CLI: `az advisor recommendation list [--category <c>]`.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "subscription_id": {
+          "description": "Azure subscription id. Omit to use the configured default or the az default subscription.",
+          "type": "string"
+        },
+        "category": {
+          "description": "Optional Advisor category filter.",
+          "type": "string",
+          "enum": [
+            "Cost",
+            "HighAvailability",
+            "Performance",
+            "Security",
+            "OperationalExcellence"
+          ]
+        }
+      },
+      "$schema": "http://json-schema.org/draft-07/schema#"
+    },
+    "annotations": {
+      "title": "List Advisor Recommendations",
+      "readOnlyHint": true,
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": true
+    },
+    "execution": {
+      "taskSupport": "forbidden"
+    }
+  },
+  {
+    "name": "List_Role_Assignments",
+    "title": "List Role Assignments",
+    "description": "List role assignments in a subscription. CLI: `az role assignment list --all`.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "subscription_id": {
+          "description": "Azure subscription id. Omit to use the configured default or the az default subscription.",
+          "type": "string"
+        },
+        "filter": {
+          "description": "Optional OData $filter, e.g. \"principalId eq '{guid}'\" or \"atScope()\".",
+          "type": "string"
+        }
+      },
+      "$schema": "http://json-schema.org/draft-07/schema#"
+    },
+    "annotations": {
+      "title": "List Role Assignments",
+      "readOnlyHint": true,
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": true
+    },
+    "execution": {
+      "taskSupport": "forbidden"
+    }
+  },
+  {
+    "name": "List_Role_Definitions",
+    "title": "List Role Definitions",
+    "description": "List RBAC role definitions visible at subscription scope, optionally custom roles only. CLI: `az role definition list [--custom-role-only]`.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "subscription_id": {
+          "description": "Azure subscription id. Omit to use the configured default or the az default subscription.",
+          "type": "string"
+        },
+        "custom_only": {
+          "description": "Only return custom roles.",
+          "type": "boolean"
+        }
+      },
+      "$schema": "http://json-schema.org/draft-07/schema#"
+    },
+    "annotations": {
+      "title": "List Role Definitions",
+      "readOnlyHint": true,
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": true
+    },
+    "execution": {
+      "taskSupport": "forbidden"
+    }
+  },
+  {
+    "name": "List_Activity_Log",
+    "title": "List Activity Log",
+    "description": "List activity log events in a subscription from a start time. CLI: `az monitor activity-log list --start-time <t>`.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "subscription_id": {
+          "description": "Azure subscription id. Omit to use the configured default or the az default subscription.",
+          "type": "string"
+        },
+        "start_time": {
+          "type": "string",
+          "description": "Start of the window as an ISO 8601 timestamp, e.g. 2026-07-01T00:00:00Z. The activity log retains 90 days."
+        },
+        "end_time": {
+          "description": "Optional end of the window as an ISO 8601 timestamp. Defaults to now.",
+          "type": "string"
+        },
+        "resource_group": {
+          "description": "Optional resource group name to scope events.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "start_time"
+      ],
+      "$schema": "http://json-schema.org/draft-07/schema#"
+    },
+    "annotations": {
+      "title": "List Activity Log",
+      "readOnlyHint": true,
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": true
+    },
+    "execution": {
+      "taskSupport": "forbidden"
+    }
+  },
+  {
+    "name": "Query_Costs",
+    "title": "Query Costs",
+    "description": "Query subscription cost data from Cost Management, grouped by a dimension (default: service name). CLI: `az costmanagement query --type ActualCost --scope subscriptions/<sub>`.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "subscription_id": {
+          "description": "Azure subscription id. Omit to use the configured default or the az default subscription.",
+          "type": "string"
+        },
+        "timeframe": {
+          "description": "Reporting window. Default MonthToDate.",
+          "type": "string",
+          "enum": [
+            "MonthToDate",
+            "BillingMonthToDate",
+            "TheLastMonth",
+            "TheLastBillingMonth",
+            "WeekToDate",
+            "Custom"
+          ]
+        },
+        "from_date": {
+          "description": "Start date (ISO 8601) when timeframe is Custom.",
+          "type": "string"
+        },
+        "to_date": {
+          "description": "End date (ISO 8601) when timeframe is Custom.",
+          "type": "string"
+        },
+        "group_by": {
+          "description": "Dimension to group by, e.g. ServiceName, ResourceGroupName, ResourceLocation, MeterCategory. Default ServiceName.",
+          "type": "string"
+        },
+        "granularity": {
+          "description": "Time granularity. Default None (single total per group).",
+          "type": "string",
+          "enum": [
+            "None",
+            "Daily",
+            "Monthly"
+          ]
+        }
+      },
+      "$schema": "http://json-schema.org/draft-07/schema#"
+    },
+    "annotations": {
+      "title": "Query Costs",
+      "readOnlyHint": true,
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": true
+    },
+    "execution": {
+      "taskSupport": "forbidden"
+    }
+  },
+  {
+    "name": "Tag_Resource",
+    "title": "Tag Resource",
+    "description": "Merge tags onto a resource by ARM resource id. CLI: `az tag update --resource-id <id> --operation Merge --tags k=v`.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "resource_id": {
+          "type": "string",
+          "description": "Full ARM resource id (starts with /subscriptions/...)."
+        },
+        "tags": {
+          "type": "object",
+          "propertyNames": {
+            "type": "string"
+          },
+          "additionalProperties": {
+            "type": "string"
+          },
+          "description": "Tag key/value pairs to merge."
+        },
+        "confirm": {
+          "type": "boolean",
+          "const": true,
+          "description": "Must be exactly true. Acknowledges that this call changes live Azure resources. There is no dry run: if this is set, the change is made."
+        }
+      },
+      "required": [
+        "resource_id",
+        "tags",
+        "confirm"
+      ],
+      "$schema": "http://json-schema.org/draft-07/schema#"
+    },
+    "annotations": {
+      "title": "Tag Resource",
+      "readOnlyHint": false,
+      "destructiveHint": false,
+      "idempotentHint": false,
+      "openWorldHint": true
+    },
+    "execution": {
+      "taskSupport": "forbidden"
+    },
+    "_meta": {
+      "anthropic/requiresUserInteraction": true
+    }
+  },
+  {
+    "name": "Create_Resource_Group",
+    "title": "Create Resource Group",
+    "description": "Create or update a resource group. CLI: `az group create -n <rg> -l <location>`.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "subscription_id": {
+          "description": "Azure subscription id. Omit to use the configured default or the az default subscription.",
+          "type": "string"
+        },
+        "resource_group": {
+          "type": "string",
+          "description": "Resource group name to create or update."
+        },
+        "location": {
+          "type": "string",
+          "description": "Azure region for the group, e.g. eastus."
+        },
+        "tags": {
+          "description": "Optional tag key/value pairs.",
+          "type": "object",
+          "propertyNames": {
+            "type": "string"
+          },
+          "additionalProperties": {
+            "type": "string"
+          }
+        },
+        "confirm": {
+          "type": "boolean",
+          "const": true,
+          "description": "Must be exactly true. Acknowledges that this call changes live Azure resources. There is no dry run: if this is set, the change is made."
+        }
+      },
+      "required": [
+        "resource_group",
+        "location",
+        "confirm"
+      ],
+      "$schema": "http://json-schema.org/draft-07/schema#"
+    },
+    "annotations": {
+      "title": "Create Resource Group",
+      "readOnlyHint": false,
+      "destructiveHint": false,
+      "idempotentHint": false,
+      "openWorldHint": true
+    },
+    "execution": {
+      "taskSupport": "forbidden"
+    },
+    "_meta": {
+      "anthropic/requiresUserInteraction": true
+    }
+  },
+  {
+    "name": "Delete_Resource_Group",
+    "title": "Delete Resource Group",
+    "description": "Delete a resource group and all resources in it. CLI: `az group delete -n <rg> --yes`.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "subscription_id": {
+          "description": "Azure subscription id. Omit to use the configured default or the az default subscription.",
+          "type": "string"
+        },
+        "resource_group": {
+          "type": "string",
+          "description": "Resource group name to delete. This deletes the group and every resource inside it."
+        },
+        "confirm": {
+          "type": "boolean",
+          "const": true,
+          "description": "Must be exactly true. Acknowledges that this call changes live Azure resources. There is no dry run: if this is set, the change is made."
+        }
+      },
+      "required": [
+        "resource_group",
+        "confirm"
+      ],
+      "$schema": "http://json-schema.org/draft-07/schema#"
+    },
+    "annotations": {
+      "title": "Delete Resource Group",
+      "readOnlyHint": false,
+      "destructiveHint": true,
+      "idempotentHint": false,
+      "openWorldHint": true
+    },
+    "execution": {
+      "taskSupport": "forbidden"
+    },
+    "_meta": {
+      "anthropic/requiresUserInteraction": true
+    }
+  },
+  {
+    "name": "Delete_Resource",
+    "title": "Delete Resource",
+    "description": "Delete a single resource by its full ARM resource id. Irreversible. CLI: `az resource delete --ids <id>`.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "resource_id": {
+          "type": "string",
+          "description": "Full ARM resource id of the resource to delete."
+        },
+        "api_version": {
+          "description": "Optional ARM api-version. If omitted or wrong, the supported version is auto-negotiated.",
+          "type": "string"
+        },
+        "confirm": {
+          "type": "boolean",
+          "const": true,
+          "description": "Must be exactly true. Acknowledges that this call changes live Azure resources. There is no dry run: if this is set, the change is made."
+        }
+      },
+      "required": [
+        "resource_id",
+        "confirm"
+      ],
+      "$schema": "http://json-schema.org/draft-07/schema#"
+    },
+    "annotations": {
+      "title": "Delete Resource",
+      "readOnlyHint": false,
+      "destructiveHint": true,
+      "idempotentHint": false,
+      "openWorldHint": true
+    },
+    "execution": {
+      "taskSupport": "forbidden"
+    },
+    "_meta": {
+      "anthropic/requiresUserInteraction": true
+    }
+  },
+  {
+    "name": "List_SQL_Databases",
+    "title": "List SQL Databases",
+    "description": "List databases on an Azure SQL server. CLI: `az sql db list -g <rg> -s <server>`.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "subscription_id": {
+          "description": "Azure subscription id. Omit to use the configured default or the az default subscription.",
+          "type": "string"
+        },
+        "resource_group": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Resource group of the SQL server."
+        },
+        "server_name": {
+          "type": "string",
+          "description": "Azure SQL logical server name."
+        }
+      },
+      "required": [
+        "resource_group",
+        "server_name"
+      ],
+      "$schema": "http://json-schema.org/draft-07/schema#"
+    },
+    "annotations": {
+      "title": "List SQL Databases",
+      "readOnlyHint": true,
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": true
+    },
+    "execution": {
+      "taskSupport": "forbidden"
+    }
+  },
+  {
+    "name": "List_Subnets",
+    "title": "List Subnets",
+    "description": "List subnets in a virtual network. CLI: `az network vnet subnet list -g <rg> --vnet-name <vnet>`.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "subscription_id": {
+          "description": "Azure subscription id. Omit to use the configured default or the az default subscription.",
+          "type": "string"
+        },
+        "resource_group": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Resource group of the virtual network."
+        },
+        "vnet_name": {
+          "type": "string",
+          "description": "Virtual network name."
+        }
+      },
+      "required": [
+        "resource_group",
+        "vnet_name"
+      ],
+      "$schema": "http://json-schema.org/draft-07/schema#"
+    },
+    "annotations": {
+      "title": "List Subnets",
+      "readOnlyHint": true,
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": true
+    },
+    "execution": {
+      "taskSupport": "forbidden"
+    }
+  },
+  {
+    "name": "List_NSG_Rules",
+    "title": "List NSG Rules",
+    "description": "List the security rules (custom and default) of a network security group. CLI: `az network nsg rule list -g <rg> --nsg-name <nsg> [--include-default]`.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "subscription_id": {
+          "description": "Azure subscription id. Omit to use the configured default or the az default subscription.",
+          "type": "string"
+        },
+        "resource_group": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Resource group of the NSG."
+        },
+        "nsg_name": {
+          "type": "string",
+          "description": "Network security group name."
+        },
+        "include_default_rules": {
+          "description": "Also include Azure default rules.",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "resource_group",
+        "nsg_name"
+      ],
+      "$schema": "http://json-schema.org/draft-07/schema#"
+    },
+    "annotations": {
+      "title": "List NSG Rules",
+      "readOnlyHint": true,
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": true
+    },
+    "execution": {
+      "taskSupport": "forbidden"
+    }
+  },
+  {
+    "name": "List_DNS_Records",
+    "title": "List DNS Records",
+    "description": "List all record sets in a DNS zone. CLI: `az network dns record-set list -g <rg> -z <zone>`.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "subscription_id": {
+          "description": "Azure subscription id. Omit to use the configured default or the az default subscription.",
+          "type": "string"
+        },
+        "resource_group": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Resource group of the DNS zone."
+        },
+        "zone_name": {
+          "type": "string",
+          "description": "DNS zone name, e.g. example.com."
+        }
+      },
+      "required": [
+        "resource_group",
+        "zone_name"
+      ],
+      "$schema": "http://json-schema.org/draft-07/schema#"
+    },
+    "annotations": {
+      "title": "List DNS Records",
+      "readOnlyHint": true,
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": true
+    },
+    "execution": {
+      "taskSupport": "forbidden"
+    }
+  },
+  {
+    "name": "List_Storage_Containers",
+    "title": "List Storage Containers",
+    "description": "List blob containers in a storage account (via ARM, no data-plane access needed). CLI: `az storage container-rm list --storage-account <account>`.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "subscription_id": {
+          "description": "Azure subscription id. Omit to use the configured default or the az default subscription.",
+          "type": "string"
+        },
+        "resource_group": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Resource group of the storage account."
+        },
+        "account_name": {
+          "type": "string",
+          "description": "Storage account name."
+        }
+      },
+      "required": [
+        "resource_group",
+        "account_name"
+      ],
+      "$schema": "http://json-schema.org/draft-07/schema#"
+    },
+    "annotations": {
+      "title": "List Storage Containers",
+      "readOnlyHint": true,
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": true
+    },
+    "execution": {
+      "taskSupport": "forbidden"
+    }
+  },
+  {
+    "name": "List_File_Shares",
+    "title": "List File Shares",
+    "description": "List file shares in a storage account (via ARM). CLI: `az storage share-rm list --storage-account <account>`.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "subscription_id": {
+          "description": "Azure subscription id. Omit to use the configured default or the az default subscription.",
+          "type": "string"
+        },
+        "resource_group": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Resource group of the storage account."
+        },
+        "account_name": {
+          "type": "string",
+          "description": "Storage account name."
+        }
+      },
+      "required": [
+        "resource_group",
+        "account_name"
+      ],
+      "$schema": "http://json-schema.org/draft-07/schema#"
+    },
+    "annotations": {
+      "title": "List File Shares",
+      "readOnlyHint": true,
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": true
+    },
+    "execution": {
+      "taskSupport": "forbidden"
+    }
+  },
+  {
+    "name": "List_Storage_Queues",
+    "title": "List Storage Queues",
+    "description": "List queues in a storage account (via ARM). CLI: `az storage queue list --account-name <account> --auth-mode login`.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "subscription_id": {
+          "description": "Azure subscription id. Omit to use the configured default or the az default subscription.",
+          "type": "string"
+        },
+        "resource_group": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Resource group of the storage account."
+        },
+        "account_name": {
+          "type": "string",
+          "description": "Storage account name."
+        }
+      },
+      "required": [
+        "resource_group",
+        "account_name"
+      ],
+      "$schema": "http://json-schema.org/draft-07/schema#"
+    },
+    "annotations": {
+      "title": "List Storage Queues",
+      "readOnlyHint": true,
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": true
+    },
+    "execution": {
+      "taskSupport": "forbidden"
+    }
+  },
+  {
+    "name": "List_Storage_Tables",
+    "title": "List Storage Tables",
+    "description": "List tables in a storage account (via ARM). CLI: `az storage table list --account-name <account> --auth-mode login`.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "subscription_id": {
+          "description": "Azure subscription id. Omit to use the configured default or the az default subscription.",
+          "type": "string"
+        },
+        "resource_group": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Resource group of the storage account."
+        },
+        "account_name": {
+          "type": "string",
+          "description": "Storage account name."
+        }
+      },
+      "required": [
+        "resource_group",
+        "account_name"
+      ],
+      "$schema": "http://json-schema.org/draft-07/schema#"
+    },
+    "annotations": {
+      "title": "List Storage Tables",
+      "readOnlyHint": true,
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": true
+    },
+    "execution": {
+      "taskSupport": "forbidden"
+    }
+  },
+  {
+    "name": "List_Key_Vault_Secrets",
+    "title": "List Key Vault Secrets",
+    "description": "List secret names and metadata in a key vault (never returns secret values). Requires data-plane access (RBAC or access policy). CLI: `az keyvault secret list --vault-name <vault>`.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "vault_name": {
+          "type": "string",
+          "description": "Key vault name (the {name} in {name}.vault.azure.net)."
+        }
+      },
+      "required": [
+        "vault_name"
+      ],
+      "$schema": "http://json-schema.org/draft-07/schema#"
+    },
+    "annotations": {
+      "title": "List Key Vault Secrets",
+      "readOnlyHint": true,
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": true
+    },
+    "execution": {
+      "taskSupport": "forbidden"
+    }
+  },
+  {
+    "name": "Get_Key_Vault_Secret",
+    "title": "Get Key Vault Secret",
+    "description": "Get a secret's current value from a key vault. Returns the secret value - use only when the value itself is needed. A credential read, so it is gated like a write (write mode and confirm), the same as `az keyvault secret show`. CLI: `az keyvault secret show --vault-name <vault> -n <secret>`.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "vault_name": {
+          "type": "string",
+          "description": "Key vault name."
+        },
+        "secret_name": {
+          "type": "string",
+          "description": "Secret name."
+        },
+        "confirm": {
+          "type": "boolean",
+          "const": true,
+          "description": "Must be exactly true. Acknowledges that this call changes live Azure resources. There is no dry run: if this is set, the change is made."
+        }
+      },
+      "required": [
+        "vault_name",
+        "secret_name",
+        "confirm"
+      ],
+      "$schema": "http://json-schema.org/draft-07/schema#"
+    },
+    "annotations": {
+      "title": "Get Key Vault Secret",
+      "readOnlyHint": false,
+      "destructiveHint": false,
+      "idempotentHint": false,
+      "openWorldHint": true
+    },
+    "execution": {
+      "taskSupport": "forbidden"
+    },
+    "_meta": {
+      "anthropic/requiresUserInteraction": true
+    }
+  },
+  {
+    "name": "Set_Key_Vault_Secret",
+    "title": "Set Key Vault Secret",
+    "description": "Create or update a secret in a key vault (a new version; earlier versions are kept). Requires data-plane write access. CLI: `az keyvault secret set --vault-name <vault> -n <secret> --value <value>`.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "vault_name": {
+          "type": "string",
+          "description": "Key vault name."
+        },
+        "secret_name": {
+          "type": "string",
+          "description": "Secret name."
+        },
+        "value": {
+          "type": "string",
+          "description": "Secret value to store."
+        },
+        "content_type": {
+          "description": "Optional content type label.",
+          "type": "string"
+        },
+        "confirm": {
+          "type": "boolean",
+          "const": true,
+          "description": "Must be exactly true. Acknowledges that this call changes live Azure resources. There is no dry run: if this is set, the change is made."
+        }
+      },
+      "required": [
+        "vault_name",
+        "secret_name",
+        "value",
+        "confirm"
+      ],
+      "$schema": "http://json-schema.org/draft-07/schema#"
+    },
+    "annotations": {
+      "title": "Set Key Vault Secret",
+      "readOnlyHint": false,
+      "destructiveHint": false,
+      "idempotentHint": false,
+      "openWorldHint": true
+    },
+    "execution": {
+      "taskSupport": "forbidden"
+    },
+    "_meta": {
+      "anthropic/requiresUserInteraction": true
+    }
+  },
+  {
+    "name": "Graph_GET",
+    "title": "Graph GET",
+    "description": "Read any Microsoft Graph endpoint. Use the specific Entra tools when one exists. Covers users, groups, devices, directory roles, applications, service principals, Intune deviceManagement, and audit logs. CLI: `az rest --method get --url https://graph.microsoft.com/v1.0/<path>`.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "path": {
+          "type": "string",
+          "description": "Graph path beginning with '/', e.g. '/users' or '/deviceManagement/managedDevices'."
+        },
+        "query": {
+          "description": "OData query parameters, e.g. {\"$filter\": \"accountEnabled eq true\", \"$select\": \"id,displayName\"}.",
+          "type": "object",
+          "propertyNames": {
+            "type": "string"
+          },
+          "additionalProperties": {
+            "type": "string"
+          }
+        },
+        "version": {
+          "description": "Graph API version. Default v1.0.",
+          "type": "string",
+          "enum": [
+            "v1.0",
+            "beta"
+          ]
+        },
+        "consistency_eventual": {
+          "description": "Send ConsistencyLevel: eventual. Required for $count, $search, and some $filter forms.",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "path"
+      ],
+      "$schema": "http://json-schema.org/draft-07/schema#"
+    },
+    "annotations": {
+      "title": "Graph GET",
+      "readOnlyHint": true,
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": true
+    },
+    "execution": {
+      "taskSupport": "forbidden"
+    }
+  },
+  {
+    "name": "Graph_Request",
+    "title": "Graph Request",
+    "description": "Escape hatch: write to any Microsoft Graph endpoint (POST, PATCH, PUT, DELETE). Creates and updates users, group membership, app registrations, Conditional Access policies, and Intune configuration. DELETE needs the destructive gate. Permissions are bounded by the signed-in identity's Graph roles. CLI: `az rest --method <post|patch|put|delete> --url https://graph.microsoft.com/v1.0/<path>`.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "method": {
+          "type": "string",
+          "enum": [
+            "POST",
+            "PATCH",
+            "PUT",
+            "DELETE"
+          ],
+          "description": "HTTP method. For reads use Graph_GET."
+        },
+        "path": {
+          "type": "string",
+          "description": "Graph path beginning with '/', e.g. '/groups/{id}/members/$ref'."
+        },
+        "body": {
+          "description": "Optional JSON request body.",
+          "type": "object",
+          "propertyNames": {
+            "type": "string"
+          },
+          "additionalProperties": {}
+        },
+        "query": {
+          "description": "Optional query parameters.",
+          "type": "object",
+          "propertyNames": {
+            "type": "string"
+          },
+          "additionalProperties": {
+            "type": "string"
+          }
+        },
+        "version": {
+          "description": "Graph API version. Default v1.0.",
+          "type": "string",
+          "enum": [
+            "v1.0",
+            "beta"
+          ]
+        },
+        "confirm": {
+          "type": "boolean",
+          "const": true,
+          "description": "Must be exactly true. Acknowledges that this call changes live Azure resources. There is no dry run: if this is set, the change is made."
+        }
+      },
+      "required": [
+        "method",
+        "path",
+        "confirm"
+      ],
+      "$schema": "http://json-schema.org/draft-07/schema#"
+    },
+    "annotations": {
+      "title": "Graph Request",
+      "readOnlyHint": false,
+      "destructiveHint": true,
+      "idempotentHint": false,
+      "openWorldHint": true
+    },
+    "execution": {
+      "taskSupport": "forbidden"
+    },
+    "_meta": {
+      "anthropic/requiresUserInteraction": true
+    }
+  },
+  {
+    "name": "List_Entra_Users",
+    "title": "List Entra Users",
+    "description": "List Microsoft Entra ID (Azure AD) users via Microsoft Graph. Requires directory read permission. CLI: `az ad user list`.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "filter": {
+          "description": "Optional OData $filter, e.g. \"startsWith(displayName,'Pat')\".",
+          "type": "string"
+        },
+        "top": {
+          "description": "Page size, 1-999. Default 50.",
+          "type": "number"
+        }
+      },
+      "$schema": "http://json-schema.org/draft-07/schema#"
+    },
+    "annotations": {
+      "title": "List Entra Users",
+      "readOnlyHint": true,
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": true
+    },
+    "execution": {
+      "taskSupport": "forbidden"
+    }
+  },
+  {
+    "name": "List_Entra_Groups",
+    "title": "List Entra Groups",
+    "description": "List Microsoft Entra ID (Azure AD) groups via Microsoft Graph. Requires directory read permission. CLI: `az ad group list`.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "filter": {
+          "description": "Optional OData $filter.",
+          "type": "string"
+        },
+        "top": {
+          "description": "Page size, 1-999. Default 50.",
+          "type": "number"
+        }
+      },
+      "$schema": "http://json-schema.org/draft-07/schema#"
+    },
+    "annotations": {
+      "title": "List Entra Groups",
+      "readOnlyHint": true,
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": true
+    },
+    "execution": {
+      "taskSupport": "forbidden"
+    }
+  },
+  {
+    "name": "List_Entra_Applications",
+    "title": "List Entra Applications",
+    "description": "List Microsoft Entra ID app registrations via Microsoft Graph. Requires directory read permission. CLI: `az ad app list`.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "filter": {
+          "description": "Optional OData $filter.",
+          "type": "string"
+        },
+        "top": {
+          "description": "Page size, 1-999. Default 50.",
+          "type": "number"
+        }
+      },
+      "$schema": "http://json-schema.org/draft-07/schema#"
+    },
+    "annotations": {
+      "title": "List Entra Applications",
+      "readOnlyHint": true,
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": true
+    },
+    "execution": {
+      "taskSupport": "forbidden"
+    }
+  },
+  {
+    "name": "Get_Metrics",
+    "title": "Get Metrics",
+    "description": "Get Azure Monitor metrics for a resource, e.g. CPU for a VM. Use List Metric Definitions to discover metric names. CLI: `az monitor metrics list --resource <id> --metric <name>`.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "resource_id": {
+          "type": "string",
+          "description": "Full ARM resource id."
+        },
+        "metric_names": {
+          "description": "Comma-separated metric names, e.g. 'Percentage CPU'. Omit for the default metric.",
+          "type": "string"
+        },
+        "timespan": {
+          "description": "ISO 8601 range 'start/end', e.g. 2026-07-07T00:00:00Z/2026-07-08T00:00:00Z. Defaults to the last hour.",
+          "type": "string"
+        },
+        "interval": {
+          "description": "ISO 8601 duration granularity, e.g. PT5M or PT1H.",
+          "type": "string"
+        },
+        "aggregation": {
+          "description": "Comma-separated aggregations: Average, Minimum, Maximum, Total, Count.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "resource_id"
+      ],
+      "$schema": "http://json-schema.org/draft-07/schema#"
+    },
+    "annotations": {
+      "title": "Get Metrics",
+      "readOnlyHint": true,
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": true
+    },
+    "execution": {
+      "taskSupport": "forbidden"
+    }
+  },
+  {
+    "name": "List_Metric_Definitions",
+    "title": "List Metric Definitions",
+    "description": "List the metrics available for a resource (names, units, supported aggregations). CLI: `az monitor metrics list-definitions --resource <id>`.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "resource_id": {
+          "type": "string",
+          "description": "Full ARM resource id."
+        }
+      },
+      "required": [
+        "resource_id"
+      ],
+      "$schema": "http://json-schema.org/draft-07/schema#"
+    },
+    "annotations": {
+      "title": "List Metric Definitions",
+      "readOnlyHint": true,
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": true
+    },
+    "execution": {
+      "taskSupport": "forbidden"
+    }
+  },
+  {
+    "name": "List_Diagnostic_Settings",
+    "title": "List Diagnostic Settings",
+    "description": "List diagnostic settings configured on a resource (where logs and metrics are routed). CLI: `az monitor diagnostic-settings list --resource <id>`.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "resource_id": {
+          "type": "string",
+          "description": "Full ARM resource id."
+        }
+      },
+      "required": [
+        "resource_id"
+      ],
+      "$schema": "http://json-schema.org/draft-07/schema#"
+    },
+    "annotations": {
+      "title": "List Diagnostic Settings",
+      "readOnlyHint": true,
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": true
+    },
+    "execution": {
+      "taskSupport": "forbidden"
+    }
+  },
+  {
+    "name": "Query_Log_Analytics",
+    "title": "Query Log Analytics",
+    "description": "Run a KQL query against a Log Analytics workspace. Use List Log Analytics Workspaces to find the workspace customer_id (GUID). CLI: `az monitor log-analytics query -w <customer-id> --analytics-query <kql>`.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "workspace_id": {
+          "type": "string",
+          "description": "Log Analytics workspace customer id (GUID), not the ARM resource id."
+        },
+        "query": {
+          "type": "string",
+          "description": "KQL query, e.g. 'Heartbeat | summarize count() by Computer | limit 10'."
+        },
+        "timespan": {
+          "description": "Optional ISO 8601 duration or range, e.g. P1D or 2026-07-01T00:00:00Z/2026-07-08T00:00:00Z.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "workspace_id",
+        "query"
+      ],
+      "$schema": "http://json-schema.org/draft-07/schema#"
+    },
+    "annotations": {
+      "title": "Query Log Analytics",
+      "readOnlyHint": true,
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": true
+    },
+    "execution": {
+      "taskSupport": "forbidden"
+    }
+  },
+  {
+    "name": "Az_CLI",
+    "title": "Azure CLI (Read)",
+    "description": "Run any read-only Azure CLI command: every `az ... list`, `show`, `get-*`, `check-*`, and `az rest --method get` against an Azure endpoint. This is the whole CLI surface for reads, one-to-one with `az`; use it for anything the dedicated tools do not cover. Output is JSON unless you pass -o. Commands that change something, or that return keys, connection strings or secrets, are refused here and run through Az_CLI_Run instead. Use Az_CLI_Help to look up arguments. CLI: `az <group> <command> [args]`.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "args": {
+          "description": "The words after \"az\", one per element, e.g. [\"vm\", \"list\", \"-g\", \"my-rg\"]. Preferred over command: no quoting needed.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "command": {
+          "description": "The same as one string, e.g. \"vm list -g my-rg --query \\\"[].name\\\"\". A leading \"az\" is ignored. Quotes group words; nothing is expanded.",
+          "type": "string"
+        },
+        "subscription_id": {
+          "description": "Adds --subscription <id> when the command does not already carry one. Leave unset for commands without that argument (az ad ...).",
+          "type": "string",
+          "pattern": "^[^@~\\-\\s]"
+        },
+        "timeout_seconds": {
+          "description": "Kill the command after this many seconds. Default 120. Prefer --no-wait for long-running operations.",
+          "type": "integer",
+          "minimum": 5,
+          "maximum": 900
+        }
+      },
+      "$schema": "http://json-schema.org/draft-07/schema#"
+    },
+    "annotations": {
+      "title": "Azure CLI (Read)",
+      "readOnlyHint": true,
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": true
+    },
+    "execution": {
+      "taskSupport": "forbidden"
+    }
+  },
+  {
+    "name": "Az_CLI_Run",
+    "title": "Azure CLI (Run)",
+    "description": "Run any Azure CLI command, including creates, updates, deletes and commands that return credentials: one-to-one with `az`. Each command is classified before it runs: writes need write mode; disruptive verbs (delete, purge, stop, deallocate, restart, regenerate, revoke, ...) also need the destructive gate. Prompts cannot be answered, so pass --yes where the CLI asks for confirmation, and --no-wait for long operations. Arguments starting with '@' (local files) are refused. CLI: `az <group> <command> [args]`.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "args": {
+          "description": "The words after \"az\", one per element, e.g. [\"vm\", \"list\", \"-g\", \"my-rg\"]. Preferred over command: no quoting needed.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "command": {
+          "description": "The same as one string, e.g. \"vm list -g my-rg --query \\\"[].name\\\"\". A leading \"az\" is ignored. Quotes group words; nothing is expanded.",
+          "type": "string"
+        },
+        "subscription_id": {
+          "description": "Adds --subscription <id> when the command does not already carry one. Leave unset for commands without that argument (az ad ...).",
+          "type": "string",
+          "pattern": "^[^@~\\-\\s]"
+        },
+        "timeout_seconds": {
+          "description": "Kill the command after this many seconds. Default 120. Prefer --no-wait for long-running operations.",
+          "type": "integer",
+          "minimum": 5,
+          "maximum": 900
+        },
+        "confirm": {
+          "type": "boolean",
+          "const": true,
+          "description": "Must be exactly true. Acknowledges that this call changes live Azure resources. There is no dry run: if this is set, the change is made."
+        }
+      },
+      "required": [
+        "confirm"
+      ],
+      "$schema": "http://json-schema.org/draft-07/schema#"
+    },
+    "annotations": {
+      "title": "Azure CLI (Run)",
+      "readOnlyHint": false,
+      "destructiveHint": true,
+      "idempotentHint": false,
+      "openWorldHint": true
+    },
+    "execution": {
+      "taskSupport": "forbidden"
+    },
+    "_meta": {
+      "anthropic/requiresUserInteraction": true
+    }
+  },
+  {
+    "name": "Az_CLI_Help",
+    "title": "Azure CLI Help",
+    "description": "Show `az <group> [<command>] --help`: the subgroups, commands, arguments and examples, straight from the installed CLI. Use it before Az_CLI or Az_CLI_Run when unsure of a command's arguments. CLI: `az <group> [<command>] --help`.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "command": {
+          "maxItems": 6,
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^[a-z0-9][a-z0-9-]*$"
+          },
+          "description": "Command path, e.g. [\"vm\"] or [\"network\", \"nsg\", \"rule\", \"create\"]. Empty for the top-level groups."
+        }
+      },
+      "required": [
+        "command"
+      ],
+      "$schema": "http://json-schema.org/draft-07/schema#"
+    },
+    "annotations": {
+      "title": "Azure CLI Help",
+      "readOnlyHint": true,
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": true
+    },
+    "execution": {
+      "taskSupport": "forbidden"
+    }
+  },
+  {
+    "name": "View_Estate",
+    "title": "Azure Estate",
+    "description": "Interactive subscription overview: resource counts by type and region, resource groups by size, unhealthy resources, Advisor recommendations by category and impact, the Defender secure score, and month-to-date cost by service. Read-only. Reads Resource Graph, Resource Health, Advisor, Defender and Cost Management in parallel; a source the identity cannot read is reported as a note and the rest still renders. The same data is returned as JSON for hosts without MCP Apps.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "subscription_id": {
+          "description": "Azure subscription id. Omit to use the configured default or the az default subscription.",
+          "type": "string"
+        }
+      },
+      "$schema": "http://json-schema.org/draft-07/schema#"
+    },
+    "annotations": {
+      "title": "Azure Estate",
+      "readOnlyHint": true,
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": true
+    },
+    "execution": {
+      "taskSupport": "forbidden"
+    },
+    "_meta": {
+      "ui": {
+        "resourceUri": "ui://azure/estate.html",
+        "visibility": [
+          "model",
+          "app"
+        ]
+      },
+      "ui/resourceUri": "ui://azure/estate.html",
+      "openai/outputTemplate": "ui://azure/estate.html",
+      "openai/widgetAccessible": true,
+      "openai/toolInvocation/invoking": "Reading the Azure estate…",
+      "openai/toolInvocation/invoked": "Azure estate ready"
+    }
+  },
+  {
+    "name": "View_Virtual_Machines",
+    "title": "Virtual Machines",
+    "description": "Interactive virtual machine board: every VM with its power state, size, OS, region and resource group, filterable and sortable, with Start, Deallocate and Restart buttons. Read-only to open. The buttons call Start_VM, Stop_VM and Restart_VM with confirm: true, so the write and destructive gates apply to each click. The same data is returned as JSON for hosts without MCP Apps.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "subscription_id": {
+          "description": "Azure subscription id. Omit to use the configured default or the az default subscription.",
+          "type": "string"
+        },
+        "resource_group": {
+          "description": "Only VMs in this resource group.",
+          "type": "string"
+        }
+      },
+      "$schema": "http://json-schema.org/draft-07/schema#"
+    },
+    "annotations": {
+      "title": "Virtual Machines",
+      "readOnlyHint": true,
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": true
+    },
+    "execution": {
+      "taskSupport": "forbidden"
+    },
+    "_meta": {
+      "ui": {
+        "resourceUri": "ui://azure/virtual_machines.html",
+        "visibility": [
+          "model",
+          "app"
+        ]
+      },
+      "ui/resourceUri": "ui://azure/virtual_machines.html",
+      "openai/outputTemplate": "ui://azure/virtual_machines.html",
+      "openai/widgetAccessible": true,
+      "openai/toolInvocation/invoking": "Reading virtual machines…",
+      "openai/toolInvocation/invoked": "Virtual machines ready"
+    }
+  },
+  {
+    "name": "View_Web_Apps",
+    "title": "Web Apps",
+    "description": "Interactive App Service board: every web app and function app with its state, kind, default host name, HTTPS-only setting, region and resource group, with Start, Stop and Restart buttons. Read-only to open. The buttons call Start_Web_App, Stop_Web_App and Restart_Web_App with confirm: true, so the gates apply to each click. The same data is returned as JSON for hosts without MCP Apps.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "subscription_id": {
+          "description": "Azure subscription id. Omit to use the configured default or the az default subscription.",
+          "type": "string"
+        },
+        "resource_group": {
+          "description": "Only apps in this resource group.",
+          "type": "string"
+        }
+      },
+      "$schema": "http://json-schema.org/draft-07/schema#"
+    },
+    "annotations": {
+      "title": "Web Apps",
+      "readOnlyHint": true,
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": true
+    },
+    "execution": {
+      "taskSupport": "forbidden"
+    },
+    "_meta": {
+      "ui": {
+        "resourceUri": "ui://azure/web_apps.html",
+        "visibility": [
+          "model",
+          "app"
+        ]
+      },
+      "ui/resourceUri": "ui://azure/web_apps.html",
+      "openai/outputTemplate": "ui://azure/web_apps.html",
+      "openai/widgetAccessible": true,
+      "openai/toolInvocation/invoking": "Reading web apps…",
+      "openai/toolInvocation/invoked": "Web apps ready"
+    }
+  },
+  {
+    "name": "View_Costs",
+    "title": "Azure Costs",
+    "description": "Interactive cost view: total actual cost for the period, a daily trend, cost by service and by resource group, and budgets with their current spend. Read-only. Needs Cost Management Reader (or Reader) on the subscription. The same data is returned as JSON for hosts without MCP Apps.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "subscription_id": {
+          "description": "Azure subscription id. Omit to use the configured default or the az default subscription.",
+          "type": "string"
+        },
+        "timeframe": {
+          "description": "Period. Default MonthToDate.",
+          "type": "string",
+          "enum": [
+            "MonthToDate",
+            "TheLastMonth",
+            "BillingMonthToDate",
+            "TheLastBillingMonth"
+          ]
+        }
+      },
+      "$schema": "http://json-schema.org/draft-07/schema#"
+    },
+    "annotations": {
+      "title": "Azure Costs",
+      "readOnlyHint": true,
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": true
+    },
+    "execution": {
+      "taskSupport": "forbidden"
+    },
+    "_meta": {
+      "ui": {
+        "resourceUri": "ui://azure/costs.html",
+        "visibility": [
+          "model",
+          "app"
+        ]
+      },
+      "ui/resourceUri": "ui://azure/costs.html",
+      "openai/outputTemplate": "ui://azure/costs.html",
+      "openai/widgetAccessible": true,
+      "openai/toolInvocation/invoking": "Reading costs…",
+      "openai/toolInvocation/invoked": "Costs ready"
+    }
+  },
+  {
+    "name": "View_Resources",
+    "title": "Resource Explorer",
+    "description": "Interactive resource explorer: every resource in a subscription (or one resource group, or of one type) with type, region, SKU and tags, filterable and sortable. Selecting a row loads its full ARM document through Get_Resource. Read-only. The same data is returned as JSON for hosts without MCP Apps.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "subscription_id": {
+          "description": "Azure subscription id. Omit to use the configured default or the az default subscription.",
+          "type": "string"
+        },
+        "resource_group": {
+          "description": "Only resources in this resource group.",
+          "type": "string"
+        },
+        "resource_type": {
+          "description": "Only this ARM type, e.g. microsoft.storage/storageaccounts.",
+          "type": "string"
+        },
+        "max_rows": {
+          "description": "Most resources to read. Default 5000; the result says when it was cut short.",
+          "type": "integer",
+          "minimum": 100,
+          "maximum": 20000
+        }
+      },
+      "$schema": "http://json-schema.org/draft-07/schema#"
+    },
+    "annotations": {
+      "title": "Resource Explorer",
+      "readOnlyHint": true,
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": true
+    },
+    "execution": {
+      "taskSupport": "forbidden"
+    },
+    "_meta": {
+      "ui": {
+        "resourceUri": "ui://azure/resources.html",
+        "visibility": [
+          "model",
+          "app"
+        ]
+      },
+      "ui/resourceUri": "ui://azure/resources.html",
+      "openai/outputTemplate": "ui://azure/resources.html",
+      "openai/widgetAccessible": true,
+      "openai/toolInvocation/invoking": "Reading resources…",
+      "openai/toolInvocation/invoked": "Resources ready"
+    }
+  },
+  {
+    "name": "View_Security",
+    "title": "Security Posture",
+    "description": "Interactive security posture: Defender for Cloud secure score with the controls losing the most points, active Defender alerts by severity, Advisor security recommendations, and Azure Policy non-compliance. Read-only. Sources the identity cannot read (no Defender plan, no policy reader) are reported as notes. The same data is returned as JSON for hosts without MCP Apps.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "subscription_id": {
+          "description": "Azure subscription id. Omit to use the configured default or the az default subscription.",
+          "type": "string"
+        }
+      },
+      "$schema": "http://json-schema.org/draft-07/schema#"
+    },
+    "annotations": {
+      "title": "Security Posture",
+      "readOnlyHint": true,
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": true
+    },
+    "execution": {
+      "taskSupport": "forbidden"
+    },
+    "_meta": {
+      "ui": {
+        "resourceUri": "ui://azure/security.html",
+        "visibility": [
+          "model",
+          "app"
+        ]
+      },
+      "ui/resourceUri": "ui://azure/security.html",
+      "openai/outputTemplate": "ui://azure/security.html",
+      "openai/widgetAccessible": true,
+      "openai/toolInvocation/invoking": "Reading security posture…",
+      "openai/toolInvocation/invoked": "Security posture ready"
+    }
+  }
+]

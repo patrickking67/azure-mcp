@@ -26,6 +26,7 @@ All notable changes to this project are listed here. The format follows [Keep a 
 
 - ESLint (`npm run lint`) with typescript-eslint type-checked rules, run by `npm run check` and CI.
 - A test that a write without `confirm: true` is refused even with both gates open.
+- A snapshot test of the full tool listing (names, descriptions, input schemas, annotations), so an upgrade cannot change what clients see without the diff showing up in review.
 - `AGENTS.md`, `CLAUDE.md`, `llms.txt`, this changelog, `.editorconfig`, `.gitattributes`, CODEOWNERS, Dependabot, issue and PR templates, and a `.claude/launch.json` for the local HTTP transport.
 
 ## [1.0.0] - 2026-10-26
