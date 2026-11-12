@@ -13,6 +13,9 @@ All notable changes to this project are listed here. The format follows [Keep a 
 
 ### Changed
 
+- Moved from `@modelcontextprotocol/sdk` 1 to the MCP TypeScript SDK 2 split packages (`@modelcontextprotocol/server` 2.4, `@modelcontextprotocol/node` 2.1) and `@modelcontextprotocol/ext-apps` 2.0. Tool names, descriptions and input schemas are byte-identical to the previous release; the input schemas keep the draft-07 dialect they have always declared. The only change in the tool listing is that entries no longer carry `execution.taskSupport`, which SDK 2 dropped along with experimental tasks.
+- An argument that fails validation is still refused with `isError`, but the SDK words the message differently (`confirm: Invalid input: expected true` instead of `MCP error -32602: ... expected true at confirm`).
+- The server still speaks protocol revisions up to 2025-11-25. Serving the 2026-07-28 revision is a separate change.
 - CI also tests Node 26, the version the Docker image runs.
 - MCP Apps views: WCAG AA status colours in light and dark, visible focus rings, keyboard-sortable headers with `aria-sort`, labelled filters, an action column that stays in view on narrow screens, and empty and error states that say what to do next.
 - `npm run check` runs everything CI runs (typecheck, lint, tests, manifest check); the type-check-only script is now `npm run typecheck`.

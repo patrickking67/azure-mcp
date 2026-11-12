@@ -1,6 +1,6 @@
 // Subscription-wide list tools: one GET per provider collection, mapped to a compact row.
 
-import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import type { McpServer } from "@modelcontextprotocol/server";
 import { armCollect, baseOf, dig, formatResult, isJsonObject, propsOf, resolveSubscription, skuNameOf, type JsonObject, type JsonValue } from "../client.js";
 import { defineTool } from "./define.js";
 import { subscriptionSchema } from "./shared.js";

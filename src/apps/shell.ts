@@ -11,10 +11,11 @@
 // No framework, no build step, no CDN: each view is a template string with a small vanilla-JS render.
 
 import { RESOURCE_MIME_TYPE, registerAppResource } from '@modelcontextprotocol/ext-apps/server';
-import type { McpServer, ToolCallback } from '@modelcontextprotocol/sdk/server/mcp.js';
-import type { ShapeOutput, ZodRawShapeCompat } from '@modelcontextprotocol/sdk/server/zod-compat.js';
+import type { McpServer, ToolCallback } from '@modelcontextprotocol/server';
+import type { z } from 'zod';
 import { APP_RUNTIME } from './generated/runtime.js';
 import { READ_ANNOTATIONS } from '../gate.js';
+import { toolInputSchema } from '../schema.js';
 import { SERVER_VERSION } from '../version.js';
 
 const TOOL_PREFIX = 'azure';
@@ -204,7 +205,7 @@ interface ViewResult {
   isError?: boolean;
 }
 
-export interface ViewDefinition<Args extends ZodRawShapeCompat> {
+export interface ViewDefinition<Args extends z.ZodRawShape> {
   /** Tool name, View_<Noun>. */
   name: string;
   title: string;
@@ -214,7 +215,7 @@ export interface ViewDefinition<Args extends ZodRawShapeCompat> {
   invoking?: string;
   invoked?: string;
   /** Assemble the data the view renders. Returned as structuredContent and as JSON text. */
-  load: (args: ShapeOutput<Args>) => Promise<Record<string, unknown>>;
+  load: (args: z.infer<z.ZodObject<Args>>) => Promise<Record<string, unknown>>;
 }
 
 /** The ui:// resource a view tool renders. */
@@ -239,7 +240,7 @@ function viewMeta(uri: string, invoking?: string, invoked?: string): Record<stri
 }
 
 /** Register one view: its tool (read-only, gate-free) and the ui:// resource it renders. */
-export function registerView<Args extends ZodRawShapeCompat>(server: McpServer, view: ViewDefinition<Args>): void {
+export function registerView<Args extends z.ZodRawShape>(server: McpServer, view: ViewDefinition<Args>): void {
   if (!/^View_[A-Z][A-Za-z0-9_]+$/.test(view.name)) {
     throw new Error(`view tool "${view.name}" must be named View_<Noun>`);
   }
@@ -248,7 +249,8 @@ export function registerView<Args extends ZodRawShapeCompat>(server: McpServer, 
   registerAppResource(server, view.title, uri, { description: `${view.title} view` }, () => ({
     contents: [{ uri, mimeType: RESOURCE_MIME_TYPE, text: html }],
   }));
-  const callback = (async (args: ShapeOutput<Args>): Promise<ViewResult> => {
+  const inputSchema = toolInputSchema(view.inputSchema);
+  const callback = (async (args: z.infer<z.ZodObject<Args>>): Promise<ViewResult> => {
     try {
       const data = await view.load(args);
       return { content: [{ type: 'text', text: JSON.stringify(data, null, 2) }], structuredContent: data };
@@ -256,15 +258,15 @@ export function registerView<Args extends ZodRawShapeCompat>(server: McpServer, 
       const message = error instanceof Error ? error.message : String(error);
       return { content: [{ type: 'text', text: message }], isError: true };
     }
-    // ToolCallback<Args> is a conditional type the compiler cannot resolve for a
-    // generic Args; the shape is right (ShapeOutput<Args> in, CallToolResult out).
-  }) as unknown as ToolCallback<Args>;
-  server.registerTool<ZodRawShapeCompat, Args>(
+    // ToolCallback is a conditional type the compiler cannot resolve for a
+    // generic Args; the shape is right (the parsed arguments in, CallToolResult out).
+  }) as unknown as ToolCallback<typeof inputSchema>;
+  server.registerTool(
     view.name,
     {
       title: view.title,
       description: view.description,
-      inputSchema: view.inputSchema,
+      inputSchema,
       annotations: { ...READ_ANNOTATIONS, title: view.title },
       _meta: viewMeta(uri, view.invoking, view.invoked),
     },

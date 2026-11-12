@@ -1,6 +1,6 @@
 // Spend: the total, a daily trend, the services and resource groups it went to, and budgets against it.
 
-import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import type { McpServer } from "@modelcontextprotocol/server";
 import { z } from "zod";
 import { armCollect, dig, propsOf, resolveSubscription } from "../../client.js";
 import { costQuery } from "../../tools/governance.js";

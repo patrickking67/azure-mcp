@@ -1,6 +1,6 @@
 // Health, Advisor, RBAC, the activity log, cost, and resource-group / resource lifecycle.
 
-import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import type { McpServer } from "@modelcontextprotocol/server";
 import { z } from "zod";
 import { armCollect, armRequest, dig, formatResult, isJsonObject, propsOf, resolveSubscription, type JsonObject } from "../client.js";
 import { defineTool } from "./define.js";

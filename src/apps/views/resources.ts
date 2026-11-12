@@ -1,7 +1,7 @@
 // Resource explorer: every resource in scope from Resource Graph, filterable by type and text, with
 // a detail panel that loads the full ARM document through Get_Resource on demand.
 
-import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import type { McpServer } from "@modelcontextprotocol/server";
 import { z } from "zod";
 import { resolveSubscription, resourceGraph } from "../../client.js";
 import { subscriptionSchema } from "../../tools/shared.js";

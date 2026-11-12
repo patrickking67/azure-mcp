@@ -1,6 +1,6 @@
 // List tools scoped to a resource group or a parent resource.
 
-import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import type { McpServer } from "@modelcontextprotocol/server";
 import { z } from "zod";
 import { armCollect, armRequest, dig, formatResult, isJsonObject, propsOf, resolveSubscription, skuNameOf, type JsonObject } from "../client.js";
 import { defineTool } from "./define.js";

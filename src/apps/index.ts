@@ -2,7 +2,7 @@
 // view. The only buttons that change anything (Start, Stop, Restart on the VM and web app boards) call
 // the same gated tools the model uses, so their gates and confirm parameter apply to a click too.
 
-import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import type { McpServer } from "@modelcontextprotocol/server";
 import { registerCostView } from "./views/costs.js";
 import { registerEstateView } from "./views/estate.js";
 import { registerResourceView } from "./views/resources.js";

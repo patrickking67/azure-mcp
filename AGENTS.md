@@ -11,7 +11,7 @@ Security is the point of the project. The gates and the CLI classifier must neve
 ## Stack
 
 - Node.js 20+ (CI runs 22, 24 and 26; the Docker image is on 26), ESM, TypeScript strict, `tsc` to build. npm with `package-lock.json`. ESLint 10 needs Node 20.19+.
-- Runtime deps: `@modelcontextprotocol/sdk`, `@modelcontextprotocol/ext-apps`, `zod`, `jose`. No others without asking.
+- Runtime deps: `@modelcontextprotocol/server` (MCP TypeScript SDK 2), `@modelcontextprotocol/node` (the Streamable HTTP transport for `node:http`), `@modelcontextprotocol/ext-apps`, `zod`, `jose`. No others without asking. `@modelcontextprotocol/client` is a dev dependency for the tests and `scripts/sync-manifest.mjs`.
 - Tests: `node:test` against the built `dist/`.
 - Lint: ESLint flat config (`eslint.config.mjs`) with typescript-eslint `recommendedTypeChecked` for `src/` and `@eslint/js` recommended for the `.mjs` scripts and tests. Fix findings; do not add disable comments without a reason next to them.
 - esbuild bundles the plugin server; `@anthropic-ai/mcpb` packs the Claude Desktop bundle.
@@ -26,6 +26,7 @@ Security is the point of the project. The gates and the CLI classifier must neve
 | `src/cli-policy.ts` | classifies every `az` argv: read, write, destructive, sensitive, blocked |
 | `src/az.ts` | finds and runs `az` (argv only, empty sandbox cwd) |
 | `src/tools/define.ts` | `defineTool`: every tool registers here, so tier, gate and confirm cannot be skipped |
+| `src/schema.ts` | wraps a tool's zod shape for the SDK and keeps the advertised JSON Schema on draft-07, so the tool listing does not move with the SDK |
 | `src/tools/*.ts` | the tools, by area; `cli.ts` is `Az_CLI`, `Az_CLI_Run`, `Az_CLI_Help` |
 | `src/apps/` | MCP Apps views: `shell.ts` (shared HTML, CSS, table, boot), `views/*.ts` |
 | `src/apps/generated/runtime.ts` | inlined ext-apps browser runtime (generated) |

@@ -1,7 +1,7 @@
 // Entra ID through Microsoft Graph. ARM covers Azure resources; Graph covers users, groups, apps,
 // devices and Intune. Without these, "full read/write" stops at the ARM boundary.
 
-import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import type { McpServer } from "@modelcontextprotocol/server";
 import { z } from "zod";
 import { collectPaged, formatResult, GRAPH_BASE, GRAPH_BETA_BASE, GRAPH_RESOURCE, httpJson, type JsonValue } from "../client.js";
 import { defineTool } from "./define.js";

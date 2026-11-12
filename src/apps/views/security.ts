@@ -1,7 +1,7 @@
 // Security posture: Defender secure score and its weakest controls, active Defender alerts, Advisor
 // security recommendations, and Azure Policy non-compliance.
 
-import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import type { McpServer } from "@modelcontextprotocol/server";
 import { armCollect, armRequest, dig, isJsonObject, propsOf, resolveSubscription } from "../../client.js";
 import { subscriptionSchema } from "../../tools/shared.js";
 import { attempt, num, str } from "../data.js";

@@ -6,8 +6,8 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync, writeFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
-import { Client } from "@modelcontextprotocol/sdk/client/index.js";
-import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
+import { Client } from "@modelcontextprotocol/client";
+import { StdioClientTransport } from "@modelcontextprotocol/client/stdio";
 
 const root = fileURLToPath(new URL("..", import.meta.url));
 const snapshotPath = fileURLToPath(new URL("./fixtures/tool-listing.json", import.meta.url));

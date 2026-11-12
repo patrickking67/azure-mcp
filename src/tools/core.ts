@@ -1,6 +1,6 @@
 // Connection, subscriptions, resource groups, generic resources, Resource Graph, and the ARM escape hatches.
 
-import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import type { McpServer } from "@modelcontextprotocol/server";
 import { z } from "zod";
 import { AZ_LABEL, cliConfigDir } from "../az.js";
 import { authMode, BASE_AUTH_MODE, CLIENT_ID, MANAGED_IDENTITY_CLIENT_ID, TENANT_ID, currentCaller, oboEnabled } from "../auth.js";

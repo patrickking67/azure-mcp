@@ -1,7 +1,7 @@
 // Subscription overview: what is deployed where, what is unhealthy, what Advisor flags, the secure
 // score and month-to-date spend, on one page.
 
-import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import type { McpServer } from "@modelcontextprotocol/server";
 import { armCollect, armRequest, dig, isJsonObject, propsOf, resolveSubscription, resourceGraph, type JsonObject } from "../../client.js";
 import { costQuery } from "../../tools/governance.js";
 import { subscriptionSchema } from "../../tools/shared.js";
