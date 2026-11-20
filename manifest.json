@@ -3,11 +3,13 @@
   "manifest_version": "0.4",
   "name": "azure",
   "display_name": "Azure",
-  "version": "1.0.0",
-  "description": "Manage Azure and Entra ID from Claude: 102 tools, the full Azure CLI one-to-one, and six interactive views. Uses your existing az login; read-only until you open the write gate.",
-  "long_description": "Read and operate Microsoft Azure and Entra ID through your own account.\n\nAuthentication uses the Azure CLI session already on your machine, so there is no key to paste and no secret stored in the bundle. A service principal can be configured instead when you need an unattended identity.\n\nDedicated tools cover compute, networking, storage, databases, containers, Key Vault, monitoring, cost, security and Entra ID, each annotated with its Azure CLI equivalent. For everything else the Azure CLI itself is available one-to-one: Azure CLI (Read) runs any list/show/get command, Azure CLI (Run) runs any other command, and Azure CLI Help shows a command's arguments. ARM and Microsoft Graph escape hatches remain for raw REST.\n\nSix interactive views render inside Claude: an estate overview, a virtual machine board and a web app board with Start/Stop/Restart buttons, a cost view with a daily trend and budgets, a resource explorer, and a security posture page.\n\nWrites are real but gated. The connector starts read-only. Set Mode to write to enable creates and updates; set Allow destructive operations as well for deletes, stops, restarts and anything else disruptive. Every write also needs an explicit confirm on the call, and Azure CLI commands are classified per command, so a delete through the CLI needs the same gates as Delete Resource. Commands that print tokens, change your CLI sign-in or read local files are refused outright. Every operation is bounded by the RBAC and Graph permissions of the signed-in identity.\n\nRuns on macOS, Windows, and Linux. Windows has no az.exe, so the bundle resolves the Azure CLI's own interpreter rather than spawning a shell.",
+  "version": "1.1.0",
+  "description": "Azure and Entra ID from Claude: Microsoft's Azure MCP Server one-to-one, 105 dedicated tools, the full Azure CLI, eight interactive views, and up to five tenants. Uses az login unless you add service principals; read-only until you open the write gate.",
+  "long_description": "Read and operate Microsoft Azure and Entra ID through your own account or through service principals in several tenants.\n\nMicrosoft's own Azure MCP Server (@azure/mcp 4.0.0-beta.9) ships inside this extension and every one of its tools is available under its own name: the same 74 service tools you get from `azmcp server start`, or all 575 individual commands if you switch the Microsoft tool layout to all. They run as the tenant you pick and pass through the same write gate as everything else.\n\nOn top of that come 105 dedicated tools for compute, networking, storage, databases, containers, Key Vault, monitoring, cost, security and Entra ID, the Azure CLI one-to-one (Azure CLI Read, Azure CLI Run, Azure CLI Help), and ARM and Microsoft Graph escape hatches.\n\nAuthentication: by default your existing az login, so there is nothing to paste. Add up to five service principals (tenant id, client id, client secret) to work across tenants without the CLI; every tool takes an optional profile argument to choose one, and every view has a tenant menu. Secrets are stored in the OS keychain and never shown.\n\nEight interactive views render inside Claude: tenants, an estate overview, virtual machines and web apps with Start/Stop/Restart, costs, a resource explorer, security posture, and an Azure Services explorer where you can search every Microsoft command, see which dedicated tool does the same job, fill in a generated form, run it and read list results as a table.\n\nWrites are real but gated. The connector starts read-only. Set Mode to write for creates and updates, and Allow destructive operations for deletes, stops, restarts and anything Microsoft marks destructive. Credential reads such as Key Vault secrets, App Service app settings and App Configuration values count as writes. Every operation is bounded by the RBAC and Graph permissions of the identity in use.",
   "author": {
-    "name": "Patrick King"
+    "name": "Patrick King",
+    "email": "patrickk@divergeit.com",
+    "url": "https://www.divergeit.com"
   },
   "icon": "assets/azure-512.png",
   "icons": [
@@ -32,7 +34,30 @@
         "AZURE_CLIENT_SECRET": "${user_config.azure_client_secret}",
         "AZ_PATH": "${user_config.az_path}",
         "AZURE_MODE": "${user_config.azure_mode}",
-        "AZURE_ALLOW_DESTRUCTIVE": "${user_config.azure_allow_destructive}"
+        "AZURE_ALLOW_DESTRUCTIVE": "${user_config.azure_allow_destructive}",
+        "AZURE_PROFILE_NAME": "${user_config.azure_profile_name}",
+        "AZURE_DEFAULT_PROFILE": "${user_config.azure_default_profile}",
+        "AZURE_PROFILE_1_NAME": "${user_config.azure_profile_1_name}",
+        "AZURE_PROFILE_1_TENANT_ID": "${user_config.azure_profile_1_tenant_id}",
+        "AZURE_PROFILE_1_CLIENT_ID": "${user_config.azure_profile_1_client_id}",
+        "AZURE_PROFILE_1_CLIENT_SECRET": "${user_config.azure_profile_1_client_secret}",
+        "AZURE_PROFILE_1_SUBSCRIPTION_ID": "${user_config.azure_profile_1_subscription_id}",
+        "AZURE_PROFILE_2_NAME": "${user_config.azure_profile_2_name}",
+        "AZURE_PROFILE_2_TENANT_ID": "${user_config.azure_profile_2_tenant_id}",
+        "AZURE_PROFILE_2_CLIENT_ID": "${user_config.azure_profile_2_client_id}",
+        "AZURE_PROFILE_2_CLIENT_SECRET": "${user_config.azure_profile_2_client_secret}",
+        "AZURE_PROFILE_2_SUBSCRIPTION_ID": "${user_config.azure_profile_2_subscription_id}",
+        "AZURE_PROFILE_3_NAME": "${user_config.azure_profile_3_name}",
+        "AZURE_PROFILE_3_TENANT_ID": "${user_config.azure_profile_3_tenant_id}",
+        "AZURE_PROFILE_3_CLIENT_ID": "${user_config.azure_profile_3_client_id}",
+        "AZURE_PROFILE_3_CLIENT_SECRET": "${user_config.azure_profile_3_client_secret}",
+        "AZURE_PROFILE_3_SUBSCRIPTION_ID": "${user_config.azure_profile_3_subscription_id}",
+        "AZURE_PROFILE_4_NAME": "${user_config.azure_profile_4_name}",
+        "AZURE_PROFILE_4_TENANT_ID": "${user_config.azure_profile_4_tenant_id}",
+        "AZURE_PROFILE_4_CLIENT_ID": "${user_config.azure_profile_4_client_id}",
+        "AZURE_PROFILE_4_CLIENT_SECRET": "${user_config.azure_profile_4_client_secret}",
+        "AZURE_PROFILE_4_SUBSCRIPTION_ID": "${user_config.azure_profile_4_subscription_id}",
+        "AZURE_MCP_TOOL_MODE": "${user_config.azure_mcp_tool_mode}"
       }
     }
   },
@@ -73,37 +98,6 @@
     }
   },
   "user_config": {
-    "azure_subscription_id": {
-      "type": "string",
-      "title": "Subscription ID (optional)",
-      "description": "Default subscription so tools can omit subscription_id. Otherwise the az default subscription is used.",
-      "required": false
-    },
-    "azure_tenant_id": {
-      "type": "string",
-      "title": "Tenant ID (optional)",
-      "description": "Entra tenant id. Required only for service principal auth; with Azure CLI auth it selects the tenant for tokens.",
-      "required": false
-    },
-    "azure_client_id": {
-      "type": "string",
-      "title": "Service Principal Client ID (optional)",
-      "description": "App registration client id. Leave empty to use your existing `az login` session instead.",
-      "required": false
-    },
-    "azure_client_secret": {
-      "type": "string",
-      "title": "Service Principal Client Secret (optional)",
-      "description": "Client secret for the service principal. Stored in the OS keychain. Leave empty to use `az login`.",
-      "sensitive": true,
-      "required": false
-    },
-    "az_path": {
-      "type": "string",
-      "title": "Path to az binary (optional)",
-      "description": "Absolute path to the Azure CLI if it is not on PATH (common when launched by a desktop app), e.g. /opt/homebrew/bin/az.",
-      "required": false
-    },
     "azure_mode": {
       "type": "string",
       "title": "Mode",
@@ -112,421 +106,907 @@
       "default": "read"
     },
     "azure_allow_destructive": {
-      "type": "string",
+      "type": "boolean",
       "title": "Allow destructive operations",
       "description": "true or false. The second gate for deletes, stops, deallocations, restarts, key regeneration and other disruptive operations, including the same commands through the Azure CLI tools. Has no effect unless Mode is write.",
       "required": false,
-      "default": "false"
+      "default": false
+    },
+    "azure_default_profile": {
+      "type": "string",
+      "title": "Default tenant profile (optional)",
+      "description": "Profile name tools use when no profile is given. Empty: the first service principal below, or your az login when none is set. Use \"cli\" to default to your az login.",
+      "required": false
+    },
+    "azure_profile_name": {
+      "type": "string",
+      "title": "Tenant 1: profile name",
+      "description": "Short name for this tenant, e.g. contoso. Pass it as `profile` on any tool. Leave the four Tenant 1 fields empty to use only your az login.",
+      "required": false
+    },
+    "azure_tenant_id": {
+      "type": "string",
+      "title": "Tenant 1: tenant ID",
+      "description": "Entra tenant id for this service principal.",
+      "required": false
+    },
+    "azure_client_id": {
+      "type": "string",
+      "title": "Tenant 1: client ID",
+      "description": "App registration (client) id. Grant it the roles it needs, e.g. Owner or Contributor on the subscriptions.",
+      "required": false
+    },
+    "azure_client_secret": {
+      "type": "string",
+      "title": "Tenant 1: client secret",
+      "description": "Client secret. Stored in the OS keychain.",
+      "sensitive": true,
+      "required": false
+    },
+    "azure_subscription_id": {
+      "type": "string",
+      "title": "Tenant 1: default subscription ID (optional)",
+      "description": "Default subscription for this profile, and for your az login when no service principal is set.",
+      "required": false
+    },
+    "azure_profile_1_name": {
+      "type": "string",
+      "title": "Tenant 2: profile name",
+      "description": "Short name for this tenant. Optional.",
+      "required": false
+    },
+    "azure_profile_1_tenant_id": {
+      "type": "string",
+      "title": "Tenant 2: tenant ID",
+      "description": "Entra tenant id.",
+      "required": false
+    },
+    "azure_profile_1_client_id": {
+      "type": "string",
+      "title": "Tenant 2: client ID",
+      "description": "App registration (client) id.",
+      "required": false
+    },
+    "azure_profile_1_client_secret": {
+      "type": "string",
+      "title": "Tenant 2: client secret",
+      "description": "Client secret. Stored in the OS keychain.",
+      "sensitive": true,
+      "required": false
+    },
+    "azure_profile_1_subscription_id": {
+      "type": "string",
+      "title": "Tenant 2: default subscription ID (optional)",
+      "description": "Default subscription for this profile.",
+      "required": false
+    },
+    "azure_profile_2_name": {
+      "type": "string",
+      "title": "Tenant 3: profile name",
+      "description": "Short name for this tenant. Optional.",
+      "required": false
+    },
+    "azure_profile_2_tenant_id": {
+      "type": "string",
+      "title": "Tenant 3: tenant ID",
+      "description": "Entra tenant id.",
+      "required": false
+    },
+    "azure_profile_2_client_id": {
+      "type": "string",
+      "title": "Tenant 3: client ID",
+      "description": "App registration (client) id.",
+      "required": false
+    },
+    "azure_profile_2_client_secret": {
+      "type": "string",
+      "title": "Tenant 3: client secret",
+      "description": "Client secret. Stored in the OS keychain.",
+      "sensitive": true,
+      "required": false
+    },
+    "azure_profile_2_subscription_id": {
+      "type": "string",
+      "title": "Tenant 3: default subscription ID (optional)",
+      "description": "Default subscription for this profile.",
+      "required": false
+    },
+    "azure_profile_3_name": {
+      "type": "string",
+      "title": "Tenant 4: profile name",
+      "description": "Short name for this tenant. Optional.",
+      "required": false
+    },
+    "azure_profile_3_tenant_id": {
+      "type": "string",
+      "title": "Tenant 4: tenant ID",
+      "description": "Entra tenant id.",
+      "required": false
+    },
+    "azure_profile_3_client_id": {
+      "type": "string",
+      "title": "Tenant 4: client ID",
+      "description": "App registration (client) id.",
+      "required": false
+    },
+    "azure_profile_3_client_secret": {
+      "type": "string",
+      "title": "Tenant 4: client secret",
+      "description": "Client secret. Stored in the OS keychain.",
+      "sensitive": true,
+      "required": false
+    },
+    "azure_profile_3_subscription_id": {
+      "type": "string",
+      "title": "Tenant 4: default subscription ID (optional)",
+      "description": "Default subscription for this profile.",
+      "required": false
+    },
+    "azure_profile_4_name": {
+      "type": "string",
+      "title": "Tenant 5: profile name",
+      "description": "Short name for this tenant. Optional.",
+      "required": false
+    },
+    "azure_profile_4_tenant_id": {
+      "type": "string",
+      "title": "Tenant 5: tenant ID",
+      "description": "Entra tenant id.",
+      "required": false
+    },
+    "azure_profile_4_client_id": {
+      "type": "string",
+      "title": "Tenant 5: client ID",
+      "description": "App registration (client) id.",
+      "required": false
+    },
+    "azure_profile_4_client_secret": {
+      "type": "string",
+      "title": "Tenant 5: client secret",
+      "description": "Client secret. Stored in the OS keychain.",
+      "sensitive": true,
+      "required": false
+    },
+    "azure_profile_4_subscription_id": {
+      "type": "string",
+      "title": "Tenant 5: default subscription ID (optional)",
+      "description": "Default subscription for this profile.",
+      "required": false
+    },
+    "azure_mcp_tool_mode": {
+      "type": "string",
+      "title": "Microsoft tool layout",
+      "description": "namespace (Microsoft's default: one tool per Azure service, 74 tools) or all (every command as its own tool, 575).",
+      "required": false,
+      "default": "namespace"
+    },
+    "az_path": {
+      "type": "string",
+      "title": "Path to az binary (optional)",
+      "description": "Absolute path to the Azure CLI if it is not on PATH (common when launched by a desktop app), e.g. /opt/homebrew/bin/az.",
+      "required": false
     }
   },
   "tools": [
     {
-      "name": "Server Status",
-      "description": "Report this server's configuration without calling Azure: version, auth mode, which settings are filled in, the Azure CLI it found, and the write gate."
+      "name": "Status_Server",
+      "description": "Report this server's configuration without calling Azure: version, tenant profiles, which settings are filled in, the Azure CLI it found, the bundled Microsoft Azure MCP server,…"
     },
     {
-      "name": "Write Gate Status",
+      "name": "Status_Gate",
       "description": "Report whether write and destructive tools are enabled, and which setting opens each gate."
     },
     {
-      "name": "Test Connection",
+      "name": "Test_Connection",
       "description": "Check Azure authentication (Azure CLI, service principal, managed identity or on-behalf-of) and report the identity and reachable subscriptions."
     },
     {
-      "name": "List Subscriptions",
+      "name": "List_Tenant_Profiles",
+      "description": "List the tenant profiles this server can run as: each service principal (tenant id, shortened client id, default subscription) and \"cli\" for your own az login."
+    },
+    {
+      "name": "List_Subscriptions",
       "description": "List subscriptions the signed-in identity can access."
     },
     {
-      "name": "List Resource Groups",
+      "name": "List_Resource_Groups",
       "description": "List resource groups in a subscription."
     },
     {
-      "name": "List Resources",
+      "name": "List_Resources",
       "description": "List resources in a subscription, optionally filtered by type or resource group."
     },
     {
-      "name": "Get Resource",
+      "name": "Get_Resource",
       "description": "Get any resource by its full ARM resource id."
     },
     {
-      "name": "Resource Graph Query",
+      "name": "Resource_Graph_Query",
       "description": "Run a Resource Graph (KQL) query across subscription resources."
     },
     {
-      "name": "ARM GET",
+      "name": "ARM_GET",
       "description": "Perform a read-only GET against any Azure Resource Manager path (GET only; no writes)."
     },
     {
-      "name": "ARM Request",
+      "name": "ARM_Request",
       "description": "Escape hatch: perform a write (POST, PUT, PATCH, DELETE) against any Azure Resource Manager path."
     },
     {
-      "name": "List Locations",
+      "name": "List_Locations",
       "description": "List Azure regions available to a subscription."
     },
     {
-      "name": "List Storage Accounts",
+      "name": "List_Storage_Accounts",
       "description": "List storage accounts in a subscription."
     },
     {
-      "name": "List Web Apps",
+      "name": "List_Web_Apps",
       "description": "List App Service web apps and function apps in a subscription."
     },
     {
-      "name": "List Function Apps",
+      "name": "List_Function_Apps",
       "description": "List Azure Functions apps in a subscription."
     },
     {
-      "name": "List App Service Plans",
+      "name": "List_App_Service_Plans",
       "description": "List App Service plans in a subscription."
     },
     {
-      "name": "List Static Web Apps",
+      "name": "List_Static_Web_Apps",
       "description": "List Static Web Apps in a subscription."
     },
     {
-      "name": "List SQL Servers",
+      "name": "List_SQL_Servers",
       "description": "List Azure SQL logical servers in a subscription."
     },
     {
-      "name": "List Cosmos DB Accounts",
+      "name": "List_Cosmos_DB_Accounts",
       "description": "List Azure Cosmos DB database accounts in a subscription."
     },
     {
-      "name": "List PostgreSQL Servers",
+      "name": "List_PostgreSQL_Servers",
       "description": "List Azure Database for PostgreSQL flexible servers in a subscription."
     },
     {
-      "name": "List MySQL Servers",
+      "name": "List_MySQL_Servers",
       "description": "List Azure Database for MySQL flexible servers in a subscription."
     },
     {
-      "name": "List Redis Caches",
+      "name": "List_Redis_Caches",
       "description": "List Azure Cache for Redis instances in a subscription."
     },
     {
-      "name": "List Key Vaults",
+      "name": "List_Key_Vaults",
       "description": "List key vaults in a subscription."
     },
     {
-      "name": "List AKS Clusters",
+      "name": "List_AKS_Clusters",
       "description": "List AKS managed clusters in a subscription."
     },
     {
-      "name": "List Container Registries",
+      "name": "List_Container_Registries",
       "description": "List Azure Container Registry instances in a subscription."
     },
     {
-      "name": "List Container Apps",
+      "name": "List_Container_Apps",
       "description": "List Azure Container Apps in a subscription."
     },
     {
-      "name": "List Container Instances",
+      "name": "List_Container_Instances",
       "description": "List Azure Container Instances container groups in a subscription."
     },
     {
-      "name": "List Disks",
+      "name": "List_Disks",
       "description": "List managed disks in a subscription."
     },
     {
-      "name": "List Snapshots",
+      "name": "List_Snapshots",
       "description": "List managed disk snapshots in a subscription."
     },
     {
-      "name": "List VM Images",
+      "name": "List_VM_Images",
       "description": "List custom VM images in a subscription."
     },
     {
-      "name": "List VM Scale Sets",
+      "name": "List_VM_Scale_Sets",
       "description": "List virtual machine scale sets in a subscription."
     },
     {
-      "name": "List Public IPs",
+      "name": "List_Public_IPs",
       "description": "List public IP addresses in a subscription."
     },
     {
-      "name": "List Network Security Groups",
+      "name": "List_Network_Security_Groups",
       "description": "List network security groups in a subscription."
     },
     {
-      "name": "List Virtual Networks",
+      "name": "List_Virtual_Networks",
       "description": "List virtual networks in a subscription."
     },
     {
-      "name": "List Network Interfaces",
+      "name": "List_Network_Interfaces",
       "description": "List network interfaces (NICs) in a subscription."
     },
     {
-      "name": "List Load Balancers",
+      "name": "List_Load_Balancers",
       "description": "List load balancers in a subscription."
     },
     {
-      "name": "List Application Gateways",
+      "name": "List_Application_Gateways",
       "description": "List application gateways in a subscription."
     },
     {
-      "name": "List Route Tables",
+      "name": "List_Route_Tables",
       "description": "List route tables in a subscription."
     },
     {
-      "name": "List DNS Zones",
+      "name": "List_DNS_Zones",
       "description": "List public and private DNS zones in a subscription."
     },
     {
-      "name": "List Private Endpoints",
+      "name": "List_Private_Endpoints",
       "description": "List private endpoints in a subscription."
     },
     {
-      "name": "List Managed Identities",
+      "name": "List_Managed_Identities",
       "description": "List user-assigned managed identities in a subscription."
     },
     {
-      "name": "List Log Analytics Workspaces",
+      "name": "List_Log_Analytics_Workspaces",
       "description": "List Log Analytics workspaces in a subscription."
     },
     {
-      "name": "List Application Insights",
+      "name": "List_Application_Insights",
       "description": "List Application Insights components in a subscription."
     },
     {
-      "name": "List Event Hub Namespaces",
+      "name": "List_Event_Hub_Namespaces",
       "description": "List Event Hubs namespaces in a subscription."
     },
     {
-      "name": "List Service Bus Namespaces",
+      "name": "List_Service_Bus_Namespaces",
       "description": "List Service Bus namespaces in a subscription."
     },
     {
-      "name": "List Alert Rules",
+      "name": "List_Alert_Rules",
       "description": "List metric alert rules configured in a subscription."
     },
     {
-      "name": "List Fired Alerts",
+      "name": "List_Fired_Alerts",
       "description": "List alerts fired across Azure Monitor for a subscription (Alerts Management)."
     },
     {
-      "name": "List Security Alerts",
+      "name": "List_Security_Alerts",
       "description": "List Microsoft Defender for Cloud security alerts in a subscription."
     },
     {
-      "name": "List Secure Scores",
+      "name": "List_Secure_Scores",
       "description": "List Microsoft Defender for Cloud secure scores for a subscription."
     },
     {
-      "name": "List Policy Assignments",
+      "name": "List_Policy_Assignments",
       "description": "List Azure Policy assignments in a subscription."
     },
     {
-      "name": "List Budgets",
+      "name": "List_Budgets",
       "description": "List Cost Management budgets for a subscription."
     },
     {
-      "name": "List Virtual Machines",
+      "name": "List_Virtual_Machines",
       "description": "List virtual machines in a subscription, optionally with power state."
     },
     {
-      "name": "Get Virtual Machine",
+      "name": "Get_Virtual_Machine",
       "description": "Get a virtual machine with its configuration and current power state."
     },
     {
-      "name": "Start VM",
+      "name": "Start_VM",
       "description": "Start a virtual machine."
     },
     {
-      "name": "Stop VM",
+      "name": "Stop_VM",
       "description": "Deallocate (stop) a virtual machine to halt compute billing."
     },
     {
-      "name": "Restart VM",
+      "name": "Restart_VM",
       "description": "Restart a virtual machine."
     },
     {
-      "name": "Resize VM",
+      "name": "Resize_VM",
       "description": "Change a virtual machine's size (SKU)."
     },
     {
-      "name": "Get Web App",
+      "name": "Get_Web_App",
       "description": "Get an App Service web app or function app with its configuration summary."
     },
     {
-      "name": "Start Web App",
+      "name": "Start_Web_App",
       "description": "Start an App Service web app or function app."
     },
     {
-      "name": "Stop Web App",
+      "name": "Stop_Web_App",
       "description": "Stop an App Service web app or function app."
     },
     {
-      "name": "Restart Web App",
+      "name": "Restart_Web_App",
       "description": "Restart an App Service web app or function app."
     },
     {
-      "name": "Get AKS Cluster",
+      "name": "Get_AKS_Cluster",
       "description": "Get an AKS managed cluster with node pool and network summary."
     },
     {
-      "name": "Start AKS Cluster",
+      "name": "Start_AKS_Cluster",
       "description": "Start a stopped AKS cluster."
     },
     {
-      "name": "Stop AKS Cluster",
+      "name": "Stop_AKS_Cluster",
       "description": "Stop a running AKS cluster to pause compute billing."
     },
     {
-      "name": "Resource Health",
+      "name": "Resource_Health",
       "description": "Report availability status for resources in a subscription."
     },
     {
-      "name": "List Advisor Recommendations",
+      "name": "List_Advisor_Recommendations",
       "description": "List Azure Advisor recommendations for a subscription, optionally filtered by category."
     },
     {
-      "name": "List Role Assignments",
+      "name": "List_Role_Assignments",
       "description": "List role assignments in a subscription."
     },
     {
-      "name": "List Role Definitions",
+      "name": "List_Role_Definitions",
       "description": "List RBAC role definitions visible at subscription scope, optionally custom roles only."
     },
     {
-      "name": "List Activity Log",
+      "name": "List_Activity_Log",
       "description": "List activity log events in a subscription from a start time."
     },
     {
-      "name": "Query Costs",
+      "name": "Query_Costs",
       "description": "Query subscription cost data from Cost Management, grouped by a dimension (default: service name)."
     },
     {
-      "name": "Tag Resource",
+      "name": "Tag_Resource",
       "description": "Merge tags onto a resource by ARM resource id."
     },
     {
-      "name": "Create Resource Group",
+      "name": "Create_Resource_Group",
       "description": "Create or update a resource group."
     },
     {
-      "name": "Delete Resource Group",
+      "name": "Delete_Resource_Group",
       "description": "Delete a resource group and all resources in it."
     },
     {
-      "name": "Delete Resource",
+      "name": "Delete_Resource",
       "description": "Delete a single resource by its full ARM resource id."
     },
     {
-      "name": "List SQL Databases",
+      "name": "List_SQL_Databases",
       "description": "List databases on an Azure SQL server."
     },
     {
-      "name": "List Subnets",
+      "name": "List_Subnets",
       "description": "List subnets in a virtual network."
     },
     {
-      "name": "List NSG Rules",
+      "name": "List_NSG_Rules",
       "description": "List the security rules (custom and default) of a network security group."
     },
     {
-      "name": "List DNS Records",
+      "name": "List_DNS_Records",
       "description": "List all record sets in a DNS zone."
     },
     {
-      "name": "List Storage Containers",
+      "name": "List_Storage_Containers",
       "description": "List blob containers in a storage account (via ARM, no data-plane access needed)."
     },
     {
-      "name": "List File Shares",
+      "name": "List_File_Shares",
       "description": "List file shares in a storage account (via ARM)."
     },
     {
-      "name": "List Storage Queues",
+      "name": "List_Storage_Queues",
       "description": "List queues in a storage account (via ARM)."
     },
     {
-      "name": "List Storage Tables",
+      "name": "List_Storage_Tables",
       "description": "List tables in a storage account (via ARM)."
     },
     {
-      "name": "List Key Vault Secrets",
+      "name": "List_Key_Vault_Secrets",
       "description": "List secret names and metadata in a key vault (never returns secret values)."
     },
     {
-      "name": "Get Key Vault Secret",
+      "name": "Get_Key_Vault_Secret",
       "description": "Get a secret's current value from a key vault."
     },
     {
-      "name": "Set Key Vault Secret",
+      "name": "Set_Key_Vault_Secret",
       "description": "Create or update a secret in a key vault (a new version; earlier versions are kept)."
     },
     {
-      "name": "Graph GET",
+      "name": "Graph_GET",
       "description": "Read any Microsoft Graph endpoint."
     },
     {
-      "name": "Graph Request",
+      "name": "Graph_Request",
       "description": "Escape hatch: write to any Microsoft Graph endpoint (POST, PATCH, PUT, DELETE)."
     },
     {
-      "name": "List Entra Users",
+      "name": "List_Entra_Users",
       "description": "List Microsoft Entra ID (Azure AD) users via Microsoft Graph."
     },
     {
-      "name": "List Entra Groups",
+      "name": "List_Entra_Groups",
       "description": "List Microsoft Entra ID (Azure AD) groups via Microsoft Graph."
     },
     {
-      "name": "List Entra Applications",
+      "name": "List_Entra_Applications",
       "description": "List Microsoft Entra ID app registrations via Microsoft Graph."
     },
     {
-      "name": "Get Metrics",
+      "name": "Get_Metrics",
       "description": "Get Azure Monitor metrics for a resource, e.g."
     },
     {
-      "name": "List Metric Definitions",
+      "name": "List_Metric_Definitions",
       "description": "List the metrics available for a resource (names, units, supported aggregations)."
     },
     {
-      "name": "List Diagnostic Settings",
+      "name": "List_Diagnostic_Settings",
       "description": "List diagnostic settings configured on a resource (where logs and metrics are routed)."
     },
     {
-      "name": "Query Log Analytics",
+      "name": "Query_Log_Analytics",
       "description": "Run a KQL query against a Log Analytics workspace."
     },
     {
-      "name": "Azure CLI (Read)",
+      "name": "Az_CLI",
       "description": "Run any read-only Azure CLI command: every `az ..."
     },
     {
-      "name": "Azure CLI (Run)",
+      "name": "Az_CLI_Run",
       "description": "Run any Azure CLI command, including creates, updates, deletes and commands that return credentials: one-to-one with `az`."
     },
     {
-      "name": "Azure CLI Help",
+      "name": "Az_CLI_Help",
       "description": "Show `az <group> [<command>] --help`: the subgroups, commands, arguments and examples, straight from the installed CLI."
     },
     {
-      "name": "Azure Estate",
+      "name": "View_Estate",
       "description": "Interactive subscription overview: resource counts by type and region, resource groups by size, unhealthy resources, Advisor recommendations by category and impact, the Defender…"
     },
     {
-      "name": "Virtual Machines",
+      "name": "View_Virtual_Machines",
       "description": "Interactive virtual machine board: every VM with its power state, size, OS, region and resource group, filterable and sortable, with Start, Deallocate and Restart buttons."
     },
     {
-      "name": "Web Apps",
+      "name": "View_Web_Apps",
       "description": "Interactive App Service board: every web app and function app with its state, kind, default host name, HTTPS-only setting, region and resource group, with Start, Stop and Restar…"
     },
     {
-      "name": "Azure Costs",
+      "name": "View_Costs",
       "description": "Interactive cost view: total actual cost for the period, a daily trend, cost by service and by resource group, and budgets with their current spend."
     },
     {
-      "name": "Resource Explorer",
+      "name": "View_Resources",
       "description": "Interactive resource explorer: every resource in a subscription (or one resource group, or of one type) with type, region, SKU and tags, filterable and sortable."
     },
     {
-      "name": "Security Posture",
+      "name": "View_Security",
       "description": "Interactive security posture: Defender for Cloud secure score with the controls losing the most points, active Defender alerts by severity, Advisor security recommendations, and…"
+    },
+    {
+      "name": "View_Tenants",
+      "description": "Interactive overview of every configured tenant profile (service principals and your az login): whether each identity can sign in, and the subscriptions it reaches."
+    },
+    {
+      "name": "View_Azure_Services",
+      "description": "Interactive explorer of Microsoft's Azure MCP Server, which this server includes one-to-one: every Azure service and command, tagged read, write or destructive, with the dedicat…"
+    },
+    {
+      "name": "documentation",
+      "description": "Search official Microsoft/Azure documentation to find the most relevant and trustworthy content for a user's query."
+    },
+    {
+      "name": "azd",
+      "description": "Azure Developer CLI (azd) includes a suite of tools to help build, modernize, and manage applications on Azure."
+    },
+    {
+      "name": "foundry",
+      "description": "MCP server to manage Microsoft Foundry models, deployments, agents, evaluations, sessions, project connections, monitoring, and data-generation jobs."
+    },
+    {
+      "name": "arm",
+      "description": "MCP server with tools to use Azure Resource Graph to retrieve and filter information about Azure resources in a customer's subscription, and tools to manage ARM template deploym…"
+    },
+    {
+      "name": "dashboards",
+      "description": "MCP server with tools to find, inspect, and update saved Azure Monitor dashboards with Grafana; query Azure Monitor logs, metrics, Application Insights traces, activity logs, an…"
+    },
+    {
+      "name": "get_azure_bestpractices",
+      "description": "Azure best practices - Commands return a list of best practices for code generation, operations and deployment when working with Azure services."
+    },
+    {
+      "name": "adme",
+      "description": "Azure Data Manager for Energy operations for the OSDU data platform."
+    },
+    {
+      "name": "aks",
+      "description": "Azure Kubernetes Service operations - Manage and query Azure Kubernetes Service (AKS) resources across subscriptions."
+    },
+    {
+      "name": "appconfig",
+      "description": "App Configuration operations - Commands for managing Azure App Configuration stores and key-value settings."
+    },
+    {
+      "name": "applens",
+      "description": "AppLens diagnostic operations - Primary tool for diagnosing and troubleshooting Azure resource issues."
+    },
+    {
+      "name": "appservice",
+      "description": "App Service operations - Commands for managing Azure App Service resources including web apps, databases, and configurations."
+    },
+    {
+      "name": "role",
+      "description": "Authorization operations - Commands for managing Azure Role-Based Access Control (RBAC) resources."
+    },
+    {
+      "name": "azurebackup",
+      "description": "Azure Backup operations - Unified commands to manage backup across Recovery Services vaults (RSV) and Backup vaults (DPP/Data Protection)."
+    },
+    {
+      "name": "datadog",
+      "description": "Datadog operations - Commands for managing and monitoring Azure resources through Datadog integration."
+    },
+    {
+      "name": "managedlustre",
+      "description": "Azure Managed Lustre operations - Commands for creating, updating, listing and inspecting Azure Managed Lustre file systems (AMLFS) used for high-performance computing workloads."
+    },
+    {
+      "name": "azuremigrate",
+      "description": "Azure Platform Landing Zone operations - Provides best-practice guidance and Terraform-ready generation for Azure Platform Landing Zones."
+    },
+    {
+      "name": "azureterraform",
+      "description": "Azure Terraform tools - Retrieves AzureRM, AzAPI, and AVM (Azure Verified Modules) Terraform provider documentation including resource schemas, arguments, attributes, module ver…"
+    },
+    {
+      "name": "azureterraformbestpractices",
+      "description": "Returns Terraform best practices for Azure."
+    },
+    {
+      "name": "deploy",
+      "description": "Deploy operations - Generate recommended Azure deployment plans, architecture diagrams, IaC (Bicep/Terraform) rules, and CI/CD pipeline/workflow guidance."
+    },
+    {
+      "name": "deviceprovisioning",
+      "description": "Azure Device Provisioning Service operations."
+    },
+    {
+      "name": "deviceregistry",
+      "description": "Device Registry operations - Commands to manage Azure Device Registry resources."
+    },
+    {
+      "name": "eventgrid",
+      "description": "Event Grid operations - Commands for managing and accessing Event Grid topics, domains, and event subscriptions."
+    },
+    {
+      "name": "acr",
+      "description": "Azure Container Registry operations - Commands for managing Azure Container Registry resources."
+    },
+    {
+      "name": "advisor",
+      "description": "Azure Advisor operations - Query Azure Advisor recommendations in subscriptions or service groups and update recommendation state in either scope."
+    },
+    {
+      "name": "bicepschema",
+      "description": "Bicep schema operations - Commands for working with Azure Bicep Infrastructure as Code (IaC) generation and schema management."
+    },
+    {
+      "name": "cosmos",
+      "description": "Cosmos DB operations - Commands for managing and querying Azure Cosmos DB resources."
+    },
+    {
+      "name": "cloudarchitect",
+      "description": "Cloud Architecture operations - Commands for generating Azure architecture designs and recommendations based on requirements."
+    },
+    {
+      "name": "communication",
+      "description": "Communication services operations - Commands for managing Azure Communication Services - supports sending SMS This tool is a hierarchical MCP command router."
+    },
+    {
+      "name": "compute",
+      "description": "Compute operations - Commands for managing and monitoring Azure Virtual Machines (VMs), Virtual Machine Scale Sets (VMSS), and Managed Disks."
+    },
+    {
+      "name": "confidentialledger",
+      "description": "Azure Confidential Ledger operations - Commands for appending and querying tamper-proof ledger entries backed by TEEs and blockchain-style integrity guarantees."
+    },
+    {
+      "name": "containerapps",
+      "description": "Azure Container Apps operations - Commands for managing Azure Container Apps resources."
+    },
+    {
+      "name": "eventhubs",
+      "description": "Azure Event Hubs operations - Commands for managing Azure Event Hubs namespaces and event hubs."
+    },
+    {
+      "name": "fileshares",
+      "description": "File Shares operations - Commands for managing Azure File Shares."
+    },
+    {
+      "name": "foundryextensions",
+      "description": "Use this tool for Microsoft Foundry knowledge indexes and OpenAI-compatible APIs: list knowledge indexes, get index schemas, create completions, generate embeddings, list models…"
+    },
+    {
+      "name": "functionapp",
+      "description": "Function App operations - Commands for managing and accessing Azure Function App resources."
+    },
+    {
+      "name": "functions",
+      "description": "Azure Functions code generation commands."
+    },
+    {
+      "name": "grafana",
+      "description": "Grafana workspace operations - Commands for managing and accessing Azure Managed Grafana resources and monitoring dashboards."
+    },
+    {
+      "name": "insights",
+      "description": "Insights operations - Commands for deriving insights from existing Azure infrastructure."
+    },
+    {
+      "name": "iothub",
+      "description": "IoT Hub operations - Commands for managing Azure IoT Hubs."
+    },
+    {
+      "name": "iotoperations",
+      "description": "Azure IoT Operations operations - Commands to manage Azure IoT Operations resources."
+    },
+    {
+      "name": "keyvault",
+      "description": "Key Vault operations - Commands for managing and accessing Azure Key Vault resources."
+    },
+    {
+      "name": "kusto",
+      "description": "Kusto operations - Commands for managing and querying Azure Data Explorer (Kusto) resources."
+    },
+    {
+      "name": "loadtesting",
+      "description": "Load Testing operations - Commands for managing Azure Load Testing resources, test configurations, and test runs."
+    },
+    {
+      "name": "marketplace",
+      "description": "Marketplace operations - Commands for managing and accessing Azure Marketplace products and offers."
+    },
+    {
+      "name": "quota",
+      "description": "Quota commands for getting the available regions of specific Azure resource types or checking Azure resource quota and usage This tool is a hierarchical MCP command router."
+    },
+    {
+      "name": "monitor",
+      "description": "Monitor operations - Commands for managing Azure Monitor workspaces, querying and analyzing logs and metrics, listing tables and table types, working with health models and enti…"
+    },
+    {
+      "name": "applicationinsights",
+      "description": "Application Insights operations - Commands for listing and managing Application Insights components."
+    },
+    {
+      "name": "mysql",
+      "description": "MySQL operations - Commands for managing Azure Database for MySQL Flexible Server resources."
+    },
+    {
+      "name": "netappfiles",
+      "description": "Azure NetApp Files operations for managing enterprise file storage resources."
+    },
+    {
+      "name": "optimization",
+      "description": "Azure optimization operations - Discover cost optimization recommendations for a subscription, compare alternative compute resize/SKU options, and explain a recommendation with …"
+    },
+    {
+      "name": "policy",
+      "description": "Manage Azure Policy assignments and definitions using Azure CLI."
+    },
+    {
+      "name": "postgres",
+      "description": "PostgreSQL operations - Commands for managing Azure Database for PostgreSQL Flexible Server resources."
+    },
+    {
+      "name": "pricing",
+      "description": "Azure Retail Pricing operations - Get Azure retail pricing for SKUs, services, regions and compare pricing across different options."
+    },
+    {
+      "name": "redis",
+      "description": "Redis operations - Commands for managing Azure Redis resources."
+    },
+    {
+      "name": "resiliency",
+      "description": "Azure Resilience Management operations - Commands for working with resilience goals, usage plans, recovery plans, and drills for Azure service groups."
+    },
+    {
+      "name": "resiliencyagent",
+      "description": "Prefer these tools over Documentation and Well-Architected Framework tools whenever the user asks to define, explain, or compare Azure resiliency, high availability, availabilit…"
+    },
+    {
+      "name": "resourcehealth",
+      "description": "Resource Health operations - Commands to monitor and diagnose Azure resource health, including availability status and service health events for troubleshooting and monitoring p…"
+    },
+    {
+      "name": "search",
+      "description": "Search operations – Commands to manage and query Azure AI Search services, indexes, and knowledge sources."
+    },
+    {
+      "name": "speech",
+      "description": "Speech operations - Commands to work with Azure AI Services Speech, including speech-to-text (STT) recognition, text-to-speech (TTS) synthesis, audio processing, and language de…"
+    },
+    {
+      "name": "servicebus",
+      "description": "Service Bus operations - Commands to manage Azure Service Bus queues, topics, and subscriptions for reliable asynchronous messaging and enterprise integration."
+    },
+    {
+      "name": "servicefabric",
+      "description": "Azure Service Fabric operations - Manage and query Azure Service Fabric managed cluster resources across subscriptions."
+    },
+    {
+      "name": "signalr",
+      "description": "Azure SignalR operations - Commands for managing Azure SignalR Service resources."
+    },
+    {
+      "name": "sreagent",
+      "description": "Azure SRE Agent operations - Commands for investigating, troubleshooting, and root-causing live-site issues and incidents with Azure SRE Agent, and for managing agents, skills, …"
+    },
+    {
+      "name": "sql",
+      "description": "Azure SQL operations - Commands for managing Azure SQL databases, servers, and elastic pools."
+    },
+    {
+      "name": "storage",
+      "description": "Storage operations - Commands for creating, listing, getting, and managing Azure Storage accounts, blob containers, blobs, and tables."
+    },
+    {
+      "name": "storagesync",
+      "description": "Azure Storage Sync Operations - Commands to manage Azure File Sync resources, including Storage Sync services, sync groups, cloud and server endpoints, and registered servers."
+    },
+    {
+      "name": "virtualdesktop",
+      "description": "Azure Virtual Desktop operations - Commands for managing and accessing Azure Virtual Desktop resources."
+    },
+    {
+      "name": "wellarchitectedframework",
+      "description": "Azure Well-Architected Framework operations - Commands for accessing guidance, best practices, and recommendations based on the Azure Well-Architected Framework pillars (reliabi…"
+    },
+    {
+      "name": "workbooks",
+      "description": "Workbooks operations - Commands for managing Azure Workbooks resources and interactive data visualization dashboards."
+    },
+    {
+      "name": "extension_cli_generate",
+      "description": "Generate Azure CLI (az) commands used to accomplish a goal described by the user."
+    },
+    {
+      "name": "extension_cli_install",
+      "description": "Provide installation instructions for Azure CLI (az), Azure Developer CLI (azd), and Azure Functions Core Tools CLI (func)."
+    },
+    {
+      "name": "group_list",
+      "description": "List all resource groups in a subscription."
+    },
+    {
+      "name": "group_resource_list",
+      "description": "List all resources in a resource group."
+    },
+    {
+      "name": "subscription_list",
+      "description": "List all Azure subscriptions for the current account."
     }
-  ]
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/patrickking67/azure-mcp.git"
+  }
 }

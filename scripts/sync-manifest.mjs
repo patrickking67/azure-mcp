@@ -4,8 +4,8 @@
 // the server is ever launched. A hand-maintained list drifts; this one is
 // derived. The server is started over stdio exactly as the manifest's
 // mcp_config says, with no credentials — listing tools must not depend on
-// configuration — and each entry is written as { name: <title>, description:
-// <first sentence> }. The title, not the wire name, is what the client shows,
+// configuration — and each entry is written as { name: <tool name>, description:
+// <first sentence> }, matching the MCPB spec example. Hosts show the title from the live server,
 // so every tool must carry a Title Case `title`; a missing or lowercase one
 // fails the run rather than shipping.
 //
@@ -68,7 +68,7 @@ if (problems.length) {
 }
 
 // Registration order is meaningful, so it is kept rather than sorted.
-const next = tools.map((tool) => ({ name: tool.title ?? tool.annotations?.title, description: summarize(tool.description) }));
+const next = tools.map((tool) => ({ name: tool.name, description: summarize(tool.description) }));
 const changed = JSON.stringify(next) !== JSON.stringify(manifest.tools ?? []);
 if (check) {
   if (changed) {

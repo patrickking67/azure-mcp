@@ -1,41 +1,42 @@
 // Where access tokens come from. Four sources, one interface (getToken(resource)):
 //
 //   azure_cli          `az account get-access-token` against the user's own `az login`. The default locally.
-//   service_principal  OAuth client credentials (AZURE_TENANT_ID + AZURE_CLIENT_ID + AZURE_CLIENT_SECRET).
+//   service_principal  OAuth client credentials for the tenant profile the call runs as (src/profiles.ts).
+//                      Several profiles can be configured, one per tenant; every tool takes `profile`.
 //   managed_identity   The host's identity endpoint (Container Apps / App Service) or IMDS (VMs, AKS).
 //   on_behalf_of       Remote only. The caller's Entra token is exchanged for an ARM/Graph/Key Vault token
 //                      as that caller, so every call is bounded by THEIR RBAC, not the server's.
 //
-// AZURE_AUTH picks one explicitly; "auto" (the default) takes a service principal when all three values are
-// set, a managed identity when the host advertises one, and the Azure CLI otherwise. on_behalf_of is chosen
-// per request by src/remote.ts, which runs each call inside withCaller().
+// AZURE_AUTH=managed_identity (or a host that advertises an identity and has no service principal
+// configured) selects the managed identity. Otherwise the identity is the current tenant profile: a
+// service principal, or "cli" for the user's own az login. on_behalf_of is chosen per request by
+// src/remote.ts, which runs each call inside withCaller().
 
 import { AsyncLocalStorage } from "node:async_hooks";
 import { azJson, AzureCliError } from "./az.js";
 import { envValue } from "./env.js";
+import { currentProfile, DEFAULT_PROFILE, PROFILES, type Profile } from "./profiles.js";
 
 export type AuthMode = "azure_cli" | "service_principal" | "managed_identity" | "on_behalf_of";
 
 type JsonObject = { [key: string]: unknown };
 type CachedToken = { token: string; expiresAtMs: number };
 
-export const TENANT_ID = envValue("AZURE_TENANT_ID");
-export const CLIENT_ID = envValue("AZURE_CLIENT_ID");
-const CLIENT_SECRET = envValue("AZURE_CLIENT_SECRET");
 export const MANAGED_IDENTITY_CLIENT_ID = envValue("MANAGED_IDENTITY_CLIENT_ID");
 const LOGIN_HOST = "https://login.microsoftonline.com";
 
-function resolveMode(): Exclude<AuthMode, "on_behalf_of"> {
+function hostManagedIdentity(): boolean {
   const requested = (envValue("AZURE_AUTH") ?? "auto").toLowerCase().replace(/-/g, "_");
-  if (requested === "azure_cli" || requested === "cli") return "azure_cli";
-  if (requested === "service_principal" || requested === "sp") return "service_principal";
-  if (requested === "managed_identity" || requested === "mi") return "managed_identity";
-  if (TENANT_ID && CLIENT_ID && CLIENT_SECRET) return "service_principal";
-  if (process.env.IDENTITY_ENDPOINT || process.env.MSI_ENDPOINT) return "managed_identity";
-  return "azure_cli";
+  if (requested === "managed_identity" || requested === "mi") return true;
+  if (requested !== "auto") return false;
+  const anyServicePrincipal = PROFILES.some((p) => p.kind === "service_principal");
+  return !anyServicePrincipal && Boolean(process.env.IDENTITY_ENDPOINT || process.env.MSI_ENDPOINT);
 }
 
-export const BASE_AUTH_MODE = resolveMode();
+export const USE_MANAGED_IDENTITY = hostManagedIdentity();
+
+/** The identity used when no remote caller is in scope and no profile is named: for display and logs. */
+export const BASE_AUTH_MODE: Exclude<AuthMode, "on_behalf_of"> = USE_MANAGED_IDENTITY ? "managed_identity" : DEFAULT_PROFILE.kind;
 
 /** The signed-in remote caller whose token is exchanged on-behalf-of. */
 export type CallerAuth = { oid: string; upn: string; roles: string[]; assertion: string };
@@ -51,7 +52,8 @@ export function currentCaller(): CallerAuth | undefined {
 
 /** on_behalf_of when a remote caller is in scope and the server is configured for it; the base mode otherwise. */
 export function authMode(): AuthMode {
-  return currentCaller() && oboEnabled() ? "on_behalf_of" : BASE_AUTH_MODE;
+  if (currentCaller() && oboEnabled()) return "on_behalf_of";
+  return USE_MANAGED_IDENTITY ? "managed_identity" : currentProfile().kind;
 }
 
 export function oboEnabled(): boolean {
@@ -90,16 +92,16 @@ async function tokenEndpoint(tenant: string, form: Record<string, string>, label
   return { token: body.access_token, expiresIn: typeof body.expires_in === "number" ? body.expires_in : 3000 };
 }
 
-async function servicePrincipalToken(resource: string): Promise<string> {
-  if (!TENANT_ID || !CLIENT_ID || !CLIENT_SECRET) {
-    throw new Error("AZURE_AUTH=service_principal needs AZURE_TENANT_ID, AZURE_CLIENT_ID and AZURE_CLIENT_SECRET.");
+async function servicePrincipalToken(profile: Profile, resource: string): Promise<string> {
+  if (!profile.tenantId || !profile.clientId || !profile.clientSecret) {
+    throw new Error(`Profile "${profile.name}" needs a tenant id, a client id and a client secret.`);
   }
   const { token, expiresIn } = await tokenEndpoint(
-    TENANT_ID,
-    { grant_type: "client_credentials", client_id: CLIENT_ID, client_secret: CLIENT_SECRET, scope: `${resource}/.default` },
-    `Service principal token request for ${resource}`,
+    profile.tenantId,
+    { grant_type: "client_credentials", client_id: profile.clientId, client_secret: profile.clientSecret, scope: `${resource}/.default` },
+    `Service principal token request for ${resource} (profile ${profile.name})`,
   );
-  return remember(`sp|${resource}`, token, expiresIn);
+  return remember(`sp|${profile.name}|${resource}`, token, expiresIn);
 }
 
 /** A managed identity token: App Service / Container Apps identity endpoint first, then IMDS. */
@@ -132,13 +134,13 @@ export async function managedIdentityToken(resource: string): Promise<string> {
   return remember(key, body.access_token, expiresIn);
 }
 
-async function cliToken(resource: string): Promise<string> {
+async function cliToken(profile: Profile, resource: string): Promise<string> {
   const args = ["account", "get-access-token", "--resource", resource, "--output", "json"];
-  if (TENANT_ID) args.push("--tenant", TENANT_ID);
+  if (profile.tenantId) args.push("--tenant", profile.tenantId);
   const result = (await azJson(args)) as JsonObject | null;
   if (!result || typeof result.accessToken !== "string") throw new AzureCliError(`Azure CLI did not return an access token for ${resource}.`);
   const expiresOn = typeof result.expires_on === "number" ? result.expires_on : Date.now() / 1000 + 3000;
-  return remember(`cli|${resource}`, result.accessToken, expiresOn - Date.now() / 1000);
+  return remember(`cli|${profile.name}|${resource}`, result.accessToken, expiresOn - Date.now() / 1000);
 }
 
 /**
@@ -173,14 +175,10 @@ async function onBehalfOfToken(caller: CallerAuth, resource: string): Promise<st
 export async function getToken(resource: string): Promise<string> {
   const caller = currentCaller();
   if (caller && oboEnabled()) return onBehalfOfToken(caller, resource);
-  const key = `${BASE_AUTH_MODE === "service_principal" ? "sp" : BASE_AUTH_MODE === "managed_identity" ? "mi" : "cli"}|${resource}`;
+  if (USE_MANAGED_IDENTITY) return managedIdentityToken(resource);
+  const profile = currentProfile();
+  const key = `${profile.kind === "service_principal" ? "sp" : "cli"}|${profile.name}|${resource}`;
   const hit = cached(key);
   if (hit) return hit;
-  if (BASE_AUTH_MODE === "service_principal") return servicePrincipalToken(resource);
-  if (BASE_AUTH_MODE === "managed_identity") return managedIdentityToken(resource);
-  return cliToken(resource);
-}
-
-export function servicePrincipalSecret(): string | undefined {
-  return CLIENT_SECRET;
+  return profile.kind === "service_principal" ? servicePrincipalToken(profile, resource) : cliToken(profile, resource);
 }

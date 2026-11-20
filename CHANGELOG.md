@@ -10,6 +10,15 @@ All notable changes to this project are listed here. The format follows [Keep a 
 - The CLI classifier reads past global options (`--only-show-errors`, `--verbose`, `--help`, `-o`, `--query`) and `--` between command words, so a token or delete cannot hide behind them. Azure CLI 2.92 rejects these forms today; the classifier no longer relies on that.
 - App Service auth settings, backup configuration, mounted storage accounts and `--resolve-keyvault` are credential reads (write tier).
 - Refused: `--generate-ssh-keys` (writes into `~/.ssh`), `browse`, `connectedk8s proxy`, `survey`, `devops login`, `devops logout`, `devops configure`.
+- Microsoft's Azure MCP Server commands that read secrets without saying so are gated as writes: App Service app settings (`appservice_webapp_settings_get-appsettings`), App Configuration key-values (`appconfig_kv_get`), drill report download URLs and Foundry session file downloads. The sensitive check now splits command names into words, ignores case and surrounding spaces, and applies to unknown commands too.
+- A Microsoft router call with `learn: true` and a `command` is classified by the command instead of passing as a read.
+
+### Added
+
+- Microsoft's Azure MCP Server is pinned at `@azure/mcp` 4.0.0-beta.9: 74 service tools and 575 commands, adding `adme`, `dashboards` (Azure Monitor dashboards with Grafana), `deviceprovisioning`, `netappfiles` and `resiliencyagent`, plus new Advisor, Monitor, IoT Hub, Azure Backup and storage commands. Advisor's list inputs are now arrays (`subscriptions`, `resource-types`).
+- `src/upstream/overlap.ts` maps each dedicated tool to the Microsoft command that does the same job. The `azure://reference/api` resource and the server instructions use it, and a test fails if a catalog sync removes a mapped command.
+- `View_Azure_Services`: searches every command across all services, filters by tier, shows the dedicated tool that does the same job, reads parameter forms from the pinned catalog (no azmcp start for a form, and it now works in the `all` layout), takes object and array parameters, keeps entered values, shows the exact tool call, and renders list results as a sortable table. Its tool takes `command` to return one command's schema.
+- `npm run upstream:sync` refuses to write a catalog that lost a whole command group the current one has (a remote Microsoft server that had not connected yet); `--allow-removed` accepts a real removal.
 
 ### Changed
 

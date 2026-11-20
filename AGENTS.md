@@ -4,7 +4,7 @@ Guide for coding agents working on this repository. Humans: start with [README.m
 
 ## What this is
 
-A TypeScript MCP server for Microsoft Azure and Entra ID (server name "Azure", 102 tools). Read tools, write tools behind `AZURE_MODE=write`, destructive tools also behind `AZURE_ALLOW_DESTRUCTIVE=true`, six MCP Apps views, and the Azure CLI one-to-one through a per-command policy classifier. Two transports: stdio (`dist/index.js`) and Streamable HTTP behind Entra ID (`dist/remote.js`).
+A TypeScript MCP server for Microsoft Azure and Entra ID (server name "Azure"). 105 own tools plus every tool of Microsoft's Azure MCP Server (`@azure/mcp`, pinned, proxied one-to-one on stdio: 74 in its default namespace layout, 575 commands). Read tools, write tools behind `AZURE_MODE=write`, destructive tools also behind `AZURE_ALLOW_DESTRUCTIVE=true`, eight MCP Apps views, the Azure CLI one-to-one through a per-command policy classifier, and named tenant profiles (service principals per tenant plus the az login) selected per call with `profile`. Two transports: stdio (`dist/index.js`) and Streamable HTTP behind Entra ID (`dist/remote.js`).
 
 Security is the point of the project. The gates and the CLI classifier must never get weaker.
 
@@ -28,10 +28,12 @@ Security is the point of the project. The gates and the CLI classifier must neve
 | `src/tools/define.ts` | `defineTool`: every tool registers here, so tier, gate and confirm cannot be skipped |
 | `src/schema.ts` | wraps a tool's zod shape for the SDK and keeps the advertised JSON Schema on draft-07, so the tool listing does not move with the SDK |
 | `src/tools/*.ts` | the tools, by area; `cli.ts` is `Az_CLI`, `Az_CLI_Run`, `Az_CLI_Help` |
-| `src/apps/` | MCP Apps views: `shell.ts` (shared HTML, CSS, table, boot), `views/*.ts` |
+| `src/apps/` | MCP Apps views: `shell.ts` (shared HTML, CSS, table, boot, tenant bar), `views/*.ts` |
+| `src/profiles.ts` | tenant profiles from settings slots or `AZURE_TENANT_PROFILES`; `withProfile`/`currentProfile`; `describeProfiles` is the only user-facing form (no secrets) |
+| `src/upstream/` | Microsoft's Azure MCP Server: `register.ts` (proxy tools, per-command gate, sensitive reads), `overlap.ts` (own tool to Microsoft command map), `runner.ts` (one azmcp per profile), `rpc.ts` (raw JSON-RPC client), `generated/catalog.json` (snapshot from `npm run upstream:sync`) |
 | `src/apps/generated/runtime.ts` | inlined ext-apps browser runtime (generated) |
 | `src/auth.ts`, `src/entra.ts`, `src/client.ts` | tokens, Entra validation, ARM/Graph/Key Vault/Log Analytics clients |
-| `test/` | `cli-policy.test.mjs` (classifier), `smoke.test.mjs` (stdio + fake az), `tool-listing.test.mjs` (full `tools/list` snapshot), `remote.test.mjs`, `az.test.mjs`, `client.test.mjs` |
+| `test/` | `cli-policy.test.mjs` (classifier), `upstream.test.mjs` (overlap map, service ownership, sensitive reads), `smoke.test.mjs` (stdio + fake az), `tool-listing.test.mjs` (full `tools/list` snapshot), `remote.test.mjs`, `az.test.mjs`, `client.test.mjs` |
 | `test/fixtures/tool-listing.json` | the pinned tool listing; rewrite on purpose with `UPDATE_TOOL_LISTING=1 node --test test/tool-listing.test.mjs` |
 | `test/fixtures/fake-az.mjs` | stands in for `az`; echoes argv as JSON |
 | `plugin/` | Claude Code / Codex plugin; `plugin/server/azure-mcp.mjs` is a committed esbuild bundle |
@@ -51,6 +53,7 @@ npm test               # build, plugin bundle check, all tests
 npm run build          # tsc to dist/
 npm run plugin:build   # rebuild plugin/server/azure-mcp.mjs; required after any src/ change
 npm run manifest       # rewrite manifest.json tools after adding or renaming a tool
+npm run upstream:sync  # re-snapshot Microsoft's tool catalog after changing the pinned @azure/mcp version
 npm run mcpb:pack      # build, sync manifest, validate, write azure.mcpb (gitignored)
 npm run apps:runtime   # re-inline the ext-apps runtime after upgrading @modelcontextprotocol/ext-apps
 npm start              # stdio server from dist/

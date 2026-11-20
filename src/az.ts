@@ -56,15 +56,20 @@ export type AzRunResult = { exitCode: number | null; stdout: string; stderr: str
 
 const MAX_OUTPUT_BYTES = 20 * 1024 * 1024;
 
-// Set when the CLI tools must not touch the user's own ~/.azure (service principal or managed identity mode).
-let isolatedConfigDir: string | undefined;
-export function useIsolatedCliConfig(): string {
-  isolatedConfigDir ??= mkdtempSync(join(tmpdir(), "azure-mcp-cli-"));
-  return isolatedConfigDir;
+// The CLI tools must not touch the user's own ~/.azure when they run as a service principal or a managed
+// identity, and two tenant profiles must not share a sign-in. Each such identity gets its own config dir.
+const isolatedConfigDirs = new Map<string, string>();
+export function useIsolatedCliConfig(key: string): string {
+  let dir = isolatedConfigDirs.get(key);
+  if (!dir) {
+    dir = mkdtempSync(join(tmpdir(), `azure-mcp-cli-${key.replace(/[^A-Za-z0-9_.-]/g, "")}-`));
+    isolatedConfigDirs.set(key, dir);
+  }
+  return dir;
 }
 
-export function cliConfigDir(): string | undefined {
-  return isolatedConfigDir;
+export function cliConfigDirs(): Record<string, string> {
+  return Object.fromEntries(isolatedConfigDirs);
 }
 
 // The CLI tools run in an empty working directory, so a relative path (token.json, dist, '.') or a
@@ -76,10 +81,10 @@ export function cliSandboxDir(): string {
 }
 
 /** Run `az <args>` with stdin closed (prompts fail fast instead of hanging) and bounded output. */
-export function azRun(args: string[], options: { timeoutMs?: number; cwd?: string } = {}): Promise<AzRunResult> {
+export function azRun(args: string[], options: { timeoutMs?: number; cwd?: string; configDir?: string } = {}): Promise<AzRunResult> {
   return new Promise((resolve, reject) => {
     const env: NodeJS.ProcessEnv = { ...process.env, AZURE_CORE_NO_COLOR: "true", AZURE_CORE_SURVEY_MESSAGE: "false", PYTHONIOENCODING: "utf-8" };
-    if (isolatedConfigDir) env.AZURE_CONFIG_DIR = isolatedConfigDir;
+    if (options.configDir) env.AZURE_CONFIG_DIR = options.configDir;
     let child;
     try {
       child = spawn(AZ.command, [...AZ.prefix, ...args], { stdio: ["ignore", "pipe", "pipe"], env, windowsHide: true, ...(options.cwd ? { cwd: options.cwd } : {}) });

@@ -14,7 +14,8 @@
 import type { McpServer } from "@modelcontextprotocol/server";
 import { z } from "zod";
 import { AZ_LABEL, azRun, cliSandboxDir, useIsolatedCliConfig } from "../az.js";
-import { authMode, BASE_AUTH_MODE, CLIENT_ID, MANAGED_IDENTITY_CLIENT_ID, servicePrincipalSecret, TENANT_ID } from "../auth.js";
+import { authMode, MANAGED_IDENTITY_CLIENT_ID, USE_MANAGED_IDENTITY } from "../auth.js";
+import { currentProfile } from "../profiles.js";
 import { classify, hasFlag, splitCommand, type Classification } from "../cli-policy.js";
 import { formatResult, type JsonValue } from "../client.js";
 import { envValue } from "../env.js";
@@ -22,10 +23,13 @@ import { defineTool } from "./define.js";
 
 const MAX_TEXT = 200_000;
 
-let session: Promise<void> | undefined;
+const sessions = new Map<string, Promise<string>>();
 
-/** Sign the CLI in as the server's own identity, once, in a profile that is not the user's ~/.azure. */
-function ensureCliSession(): Promise<void> {
+/**
+ * The CLI config dir for the identity this call runs as: undefined for the user's own az login, otherwise
+ * an isolated dir signed in once as that profile's service principal (or the host's managed identity).
+ */
+function ensureCliSession(): Promise<string | undefined> {
   if (authMode() === "on_behalf_of") {
     return Promise.reject(
       new Error(
@@ -34,21 +38,27 @@ function ensureCliSession(): Promise<void> {
       ),
     );
   }
-  if (BASE_AUTH_MODE === "azure_cli") return Promise.resolve();
-  session ??= (async () => {
-    useIsolatedCliConfig();
-    const args =
-      BASE_AUTH_MODE === "managed_identity"
+  const profile = currentProfile();
+  if (!USE_MANAGED_IDENTITY && profile.kind === "azure_cli") return Promise.resolve(undefined);
+  const key = USE_MANAGED_IDENTITY ? "managed-identity" : `sp-${profile.name}`;
+  let session = sessions.get(key);
+  if (!session) {
+    session = (async () => {
+      const configDir = useIsolatedCliConfig(key);
+      const args = USE_MANAGED_IDENTITY
         ? ["login", "--identity", ...(MANAGED_IDENTITY_CLIENT_ID ? ["--client-id", MANAGED_IDENTITY_CLIENT_ID] : []), "--allow-no-subscriptions", "--output", "none"]
-        : ["login", "--service-principal", "--username", CLIENT_ID ?? "", `--password=${servicePrincipalSecret() ?? ""}`, "--tenant", TENANT_ID ?? "", "--allow-no-subscriptions", "--output", "none"];
-    const login = await azRun(args, { timeoutMs: 90_000 });
-    if (login.exitCode !== 0) {
-      session = undefined;
-      throw new Error(`Signing the Azure CLI in as the ${BASE_AUTH_MODE.replace("_", " ")} failed: ${login.stderr.trim() || `exit ${login.exitCode}`}`);
-    }
-    const sub = envValue("AZURE_SUBSCRIPTION_ID");
-    if (sub) await azRun(["account", "set", "--subscription", sub]);
-  })();
+        : ["login", "--service-principal", "--username", profile.clientId ?? "", `--password=${profile.clientSecret ?? ""}`, "--tenant", profile.tenantId ?? "", "--allow-no-subscriptions", "--output", "none"];
+      const login = await azRun(args, { timeoutMs: 90_000, configDir });
+      if (login.exitCode !== 0) {
+        sessions.delete(key);
+        throw new Error(`Signing the Azure CLI in as ${USE_MANAGED_IDENTITY ? "the managed identity" : `profile "${profile.name}"`} failed: ${login.stderr.trim() || `exit ${login.exitCode}`}`);
+      }
+      const sub = USE_MANAGED_IDENTITY ? envValue("AZURE_SUBSCRIPTION_ID") : profile.subscriptionId;
+      if (sub) await azRun(["account", "set", "--subscription", sub], { configDir });
+      return configDir;
+    })();
+    sessions.set(key, session);
+  }
   return session;
 }
 
@@ -96,8 +106,8 @@ async function execute(tool: string, input: CommandArgs, check: (c: Classificati
   const classification = classifyInput(input);
   if (classification.blocked) throw new Error(`${tool} refused: ${classification.blocked}. Nothing was run.`);
   check(classification);
-  await ensureCliSession();
-  const run = await azRun(full, { timeoutMs: (input.timeout_seconds ?? 120) * 1000, cwd: cliSandboxDir() });
+  const configDir = await ensureCliSession();
+  const run = await azRun(full, { timeoutMs: (input.timeout_seconds ?? 120) * 1000, cwd: cliSandboxDir(), configDir });
   let output: JsonValue = run.stdout;
   const trimmed = run.stdout.trim();
   if (trimmed && /^[[{"]|^(true|false|null|-?\d)/.test(trimmed)) {
@@ -175,8 +185,8 @@ export function registerCliTools(server: McpServer): void {
       command: z.array(z.string().regex(/^[a-z0-9][a-z0-9-]*$/)).max(6).describe('Command path, e.g. ["vm"] or ["network", "nsg", "rule", "create"]. Empty for the top-level groups.'),
     },
     handler: async ({ command }) => {
-      await ensureCliSession().catch(() => undefined);
-      const run = await azRun([...command, "--help"], { timeoutMs: 60_000 });
+      const configDir = await ensureCliSession().catch(() => undefined);
+      const run = await azRun([...command, "--help"], { timeoutMs: 60_000, configDir });
       const text = (run.stdout || run.stderr).trim();
       const body = { command: `az ${[...command, "--help"].join(" ")}`, cli: AZ_LABEL, help: text.length > MAX_TEXT ? `${text.slice(0, MAX_TEXT)}\n… (truncated)` : text };
       return run.exitCode === 0 ? formatResult(body) : { ...formatResult(body), isError: true };

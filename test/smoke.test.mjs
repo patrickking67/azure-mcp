@@ -4,6 +4,7 @@ import assert from "node:assert/strict";
 import { fileURLToPath } from "node:url";
 import { Client } from "@modelcontextprotocol/client";
 import { StdioClientTransport } from "@modelcontextprotocol/client/stdio";
+import catalog from "../src/upstream/generated/catalog.json" with { type: "json" };
 
 const root = fileURLToPath(new URL("..", import.meta.url));
 const fakeAz = fileURLToPath(new URL("./fixtures/fake-az.mjs", import.meta.url));
@@ -20,16 +21,25 @@ const call = (c, name, args = {}) => c.callTool({ name, arguments: args });
 
 test("tool surface: titles, tiers, confirm on every write, views carry ui meta", async () => {
   const c = await connect();
-  const { tools } = await c.listTools();
+  const { tools: all } = await c.listTools();
+  const upstream = all.filter((t) => /Microsoft Azure MCP Server/.test(t.description ?? ""));
+  // Microsoft's tools are proxied with their own schemas (no confirm); src/upstream/register.ts gates them.
+  assert.equal(upstream.length, catalog.namespace.length, `expected ${catalog.namespace.length} Microsoft namespace tools, got ${upstream.length}`);
+  for (const t of upstream) {
+    assert.ok(t.title && !t.title.includes("_"), `${t.name} title`);
+    assert.ok(t.inputSchema.properties?.profile, `${t.name} profile`);
+  }
+  const tools = all.filter((t) => !upstream.includes(t));
   assert.ok(tools.length >= 100, `expected 100+ tools, got ${tools.length}`);
   for (const t of tools) {
     assert.ok(t.title && !t.title.includes("_"), `${t.name} title`);
+    assert.ok(t.inputSchema.properties?.profile, `${t.name} profile`);
     const write = t.annotations?.readOnlyHint !== true;
     assert.equal(Boolean(t.inputSchema.properties?.confirm), write, `${t.name} confirm`);
     if (write) assert.equal(t._meta?.["anthropic/requiresUserInteraction"], true, `${t.name} interaction meta`);
   }
   const views = tools.filter((t) => t.name.startsWith("View_"));
-  assert.equal(views.length, 6);
+  assert.equal(views.length, 8);
   for (const v of views) assert.match(v._meta.ui.resourceUri, /^ui:\/\/azure\//);
   const html = await c.readResource({ uri: "ui://azure/estate.html" });
   assert.equal(html.contents[0].mimeType, "text/html;profile=mcp-app");
@@ -126,4 +136,72 @@ test("subscription_id cannot smuggle a local file or a flag into the CLI", async
   } finally {
     await c.close();
   }
+});
+
+test("Microsoft tools are gated per routed command", async () => {
+  const c = await connect();
+  const destructive = await call(c, "storage", { intent: "t", command: "storage_account_create", parameters: {} });
+  assert.equal(destructive.isError, true);
+  assert.match(text(destructive), /AZURE_ALLOW_DESTRUCTIVE=true/);
+  const secret = await call(c, "keyvault", { intent: "t", command: "keyvault_secret_get", parameters: {} });
+  assert.equal(secret.isError, true);
+  assert.match(text(secret), /AZURE_MODE=write/);
+  const unknown = await call(c, "storage", { intent: "t", command: "storage_not_a_real_command" });
+  assert.equal(unknown.isError, true, "unknown commands are treated as writes");
+  // Microsoft marks these read-only; they return secrets or bearer URLs, so they are gated as writes.
+  for (const [tool, command] of [
+    ["appservice", "appservice_webapp_settings_get-appsettings"],
+    ["appconfig", "appconfig_kv_get"],
+    ["resiliency", "resiliency_drill_run_get-report-download-url"],
+    ["keyvault", "KEYVAULT_SECRET_GET"],
+    ["keyvault", " keyvault_secret_get "],
+  ]) {
+    const r = await call(c, tool, { intent: "t", command, parameters: {} });
+    assert.equal(r.isError, true, `${command} is refused in read mode`);
+    assert.match(text(r), /AZURE_MODE=write/, command);
+  }
+  // learn: true does not make a routed command a read.
+  const learned = await call(c, "keyvault", { intent: "t", learn: true, command: "keyvault_secret_get", parameters: {} });
+  assert.equal(learned.isError, true, "learn alongside a command is still gated by the command");
+  const nonString = await call(c, "keyvault", { intent: "t", command: ["keyvault_secret_get"], parameters: {} });
+  assert.equal(nonString.isError, true, "a non-string command is treated as a write");
+  // The services view serves a command's schema from the catalog, offline.
+  const schema = await call(c, "View_Azure_Services", { command: "storage_account_get" });
+  assert.notEqual(schema.isError, true);
+  assert.equal(schema.structuredContent.command.tier, "read");
+  assert.ok(schema.structuredContent.command.inputSchema.properties);
+  assert.deepEqual(schema.structuredContent.command.own, ["List_Storage_Accounts"]);
+  const missing = await call(c, "View_Azure_Services", { command: "not_a_command" });
+  assert.equal(missing.isError, true);
+  await c.close();
+});
+
+test("tenant profiles parse from settings slots, never show a secret, and route by name or tenant id", async () => {
+  const secretValue = "s3cret-value-that-must-not-leak";
+  const c = await connect({
+    AZURE_PROFILE_NAME: "first",
+    AZURE_TENANT_ID: "00000000-0000-0000-0000-00000000000a",
+    AZURE_CLIENT_ID: "aaaaaaaa-0000-0000-0000-000000000000",
+    AZURE_CLIENT_SECRET: secretValue,
+    AZURE_PROFILE_1_NAME: "Second Tenant",
+    AZURE_PROFILE_1_TENANT_ID: "00000000-0000-0000-0000-00000000000b",
+    AZURE_PROFILE_1_CLIENT_ID: "bbbbbbbb-0000-0000-0000-000000000000",
+    AZURE_PROFILE_1_CLIENT_SECRET: secretValue,
+    AZURE_PROFILE_2_TENANT_ID: "incomplete",
+    AZURE_DEFAULT_PROFILE: "Second-Tenant",
+  });
+  const listed = await call(c, "List_Tenant_Profiles");
+  const body = JSON.parse(text(listed));
+  assert.deepEqual(body.profiles.map((p) => p.name), ["first", "Second-Tenant", "cli"]);
+  assert.equal(body.default_profile, "Second-Tenant");
+  assert.equal(body.problems.length, 1);
+  assert.ok(!text(listed).includes(secretValue));
+  const status = await call(c, "Status_Server");
+  assert.ok(!text(status).includes(secretValue));
+  const missing = await call(c, "Status_Gate", { profile: "nope" });
+  assert.equal(missing.isError, true);
+  assert.match(text(missing), /first, Second-Tenant, cli/);
+  const byTenant = await call(c, "Status_Gate", { profile: "00000000-0000-0000-0000-00000000000b" });
+  assert.notEqual(byTenant.isError, true);
+  await c.close();
 });
