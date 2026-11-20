@@ -23,9 +23,7 @@ import { SERVER_VERSION } from '../version.js';
 const TOOL_PREFIX = 'azure';
 
 const BASE_CSS = `
-:root { color-scheme: light dark; --bg:#ffffff; --fg:#1a1a1a; --muted:#5f6672; --line:#e5e7eb; --card:#f7f8fa; --accent:#0559c9; --on-accent:#ffffff; --ok:#15803d; --warn:#b45309; --bad:#b91c1c; --on-bad:#ffffff; --focus:#0559c9; --radius:10px; }
-@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --bg:#141518; --fg:#f3f4f6; --muted:#a3a9b4; --line:#2e3138; --card:#1c1e23; --accent:#6aa8ff; --on-accent:#0a1830; --ok:#4ade80; --warn:#fbbf24; --bad:#f87171; --on-bad:#2a0707; --focus:#8fbcff; } }
-:root[data-theme="dark"] { --bg:#141518; --fg:#f3f4f6; --muted:#a3a9b4; --line:#2e3138; --card:#1c1e23; --accent:#6aa8ff; --on-accent:#0a1830; --ok:#4ade80; --warn:#fbbf24; --bad:#f87171; --on-bad:#2a0707; --focus:#8fbcff; }
+:root { color-scheme: light dark; --brand:#0868B8; --bg:var(--color-background-primary, light-dark(#ffffff, #30302e)); --surface:var(--color-background-primary, light-dark(#ffffff, #30302e)); --card:var(--color-background-secondary, light-dark(#f5f4ed, #262624)); --fg:var(--color-text-primary, light-dark(#141413, #faf9f5)); --muted:var(--color-text-secondary, light-dark(#3d3d3a, #c2c0b6)); --subtle:var(--color-text-tertiary, light-dark(#73726c, #9c9a92)); --line:var(--color-border-tertiary, light-dark(rgb(31 30 29 / 15%), rgb(222 220 209 / 15%))); --line-strong:var(--color-border-secondary, light-dark(rgb(31 30 29 / 30%), rgb(222 220 209 / 30%))); --accent:var(--color-text-info, light-dark(#3266ad, #80aadd)); --ok:var(--color-text-success, light-dark(#265b19, #7ab948)); --warn:var(--color-text-warning, light-dark(#5a4815, #d1a041)); --bad:var(--color-text-danger, light-dark(#7f2c28, #ee8884)); --ok-bg:var(--color-background-success, light-dark(#e9f1dc, #1b4614)); --warn-bg:var(--color-background-warning, light-dark(#f6eedf, #483a0f)); --bad-bg:var(--color-background-danger, light-dark(#f7ecec, #602a28)); --info-bg:var(--color-background-info, light-dark(#d6e4f6, #253e5f)); --focus:var(--color-ring-primary, light-dark(rgb(20 20 19 / 70%), rgb(250 249 245 / 70%))); --hair:var(--border-width-regular, 0.5px); --radius:var(--border-radius-lg, 10px); --radius-sm:var(--border-radius-md, 8px); }
 * { box-sizing:border-box; }
 html,body { margin:0; background:var(--bg); color:var(--fg); font:14px/1.45 var(--font-sans, system-ui, -apple-system, Segoe UI, Roboto, sans-serif); }
 body { padding:12px clamp(8px, 3vw, 16px); }
@@ -80,6 +78,32 @@ th:focus-visible { outline-offset:-2px; }
 .viewbar select, .viewbar button { min-height:28px; padding:3px 8px; font-size:12px; }
 @media (max-width:480px) { .grid { grid-template-columns:repeat(auto-fill, minmax(150px,1fr)); } .card .big { font-size:19px; } }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { transition:none !important; animation:none !important; scroll-behavior:auto !important; } }
+/* Native Claude theme (MCP Apps design guidelines): host tokens for structure, a transparent page, vendor colour as accent only. */
+html,body { background:transparent; color:var(--fg); font-family:var(--font-sans, system-ui, -apple-system, "Segoe UI", sans-serif); font-size:var(--font-text-sm-size, 14px); line-height:var(--font-text-sm-line-height, 1.4); -webkit-font-smoothing:antialiased; }
+body { padding:12px 4px; }
+h1 { font-size:var(--font-heading-md-size, 16px); line-height:var(--font-heading-md-line-height, 1.4); font-weight:var(--font-weight-semibold, 600); }
+h1::before { content:""; flex:none; width:8px; height:8px; border-radius:var(--border-radius-full, 9999px); background:var(--brand); }
+h2 { font-size:var(--font-heading-xs-size, 12px); font-weight:var(--font-weight-medium, 500); color:var(--subtle); letter-spacing:.02em; }
+.card { background:var(--card); border:var(--hair) solid var(--line-strong); border-radius:var(--radius); box-shadow:none; }
+.card .title { font-weight:var(--font-weight-semibold, 600); }
+.card .meta, .status, .kv dt { color:var(--subtle); font-size:var(--font-text-xs-size, 12px); }
+.card .big { font-size:var(--font-heading-lg-size, 20px); line-height:var(--font-heading-lg-line-height, 1.25); font-weight:var(--font-weight-semibold, 600); }
+.badge { border:0; background:var(--card); color:var(--muted); font-size:var(--font-text-xs-size, 12px); font-weight:var(--font-weight-medium, 500); padding:2px 8px; border-radius:var(--border-radius-full, 9999px); }
+.badge.ok { background:var(--ok-bg); color:var(--ok); } .badge.warn { background:var(--warn-bg); color:var(--warn); } .badge.bad { background:var(--bad-bg); color:var(--bad); }
+.tablewrap { border:var(--hair) solid var(--line-strong); border-radius:var(--radius); }
+th, td { border-bottom:var(--hair) solid var(--line); }
+th { background:var(--surface); color:var(--subtle); font-weight:var(--font-weight-medium, 500); font-size:var(--font-text-xs-size, 12px); }
+th.sorted { color:var(--fg); box-shadow:inset 0 -2px 0 var(--brand); }
+tr:hover td { background:color-mix(in srgb, var(--card) 70%, transparent); }
+input, select, button { background:var(--surface); border:var(--hair) solid var(--line-strong); border-radius:var(--radius-sm); min-height:32px; }
+button { font-weight:var(--font-weight-medium, 500); }
+button.primary { background:var(--color-background-inverse, light-dark(#141413, #faf9f5)); color:var(--color-text-inverse, light-dark(#ffffff, #141413)); border-color:transparent; font-weight:var(--font-weight-semibold, 600); }
+button.danger { background:var(--bad-bg); color:var(--bad); border-color:var(--color-border-danger, light-dark(#a73d39, #cd5c58)); }
+:focus-visible, th:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible { outline:2px solid var(--focus); outline-offset:2px; }
+.bar { background:var(--line); } .error { color:var(--bad); }
+.confirm { background:color-mix(in srgb, var(--surface) 70%, transparent); }
+.confirm .panel { background:var(--surface); border:var(--hair) solid var(--line-strong); box-shadow:var(--shadow-lg, 0 10px 15px -3px rgb(0 0 0 / 10%), 0 4px 6px -4px rgb(0 0 0 / 10%)); }
+@media (pointer: coarse) { button, input, select { min-height:44px; } }
 `;
 
 /** Shared browser-side helpers, injected into every view before its own script. */
@@ -102,7 +126,7 @@ function applyContext(ctx) {
   if (!ctx) return;
   if (ctx.theme) applyDocumentTheme(ctx.theme);
   if (ctx.styles?.variables) applyHostStyleVariables(ctx.styles.variables);
-  if (ctx.styles?.fonts) applyHostFonts(ctx.styles.fonts);
+  if (ctx.styles?.css?.fonts) applyHostFonts(ctx.styles.css.fonts);
 }
 /** Unwrap a tool result: structuredContent first, else the JSON in its text part. */
 function resultData(result) {
@@ -221,6 +245,7 @@ export function renderPage(page: ViewPage): string {
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
 <title>${escapeHtml(page.title)}</title>
 <style>${BASE_CSS}${page.css ?? ''}</style>
 </head>
@@ -291,7 +316,7 @@ export function registerView<Args extends z.ZodRawShape>(server: McpServer, view
   const uri = viewUri(view.name);
   const html = renderPage(view.page);
   registerAppResource(server, view.title, uri, { description: `${view.title} view` }, () => ({
-    contents: [{ uri, mimeType: RESOURCE_MIME_TYPE, text: html }],
+    contents: [{ uri, mimeType: RESOURCE_MIME_TYPE, text: html, _meta: { ui: { prefersBorder: false, csp: { resourceDomains: ['https://assets.claude.ai'] } } } }],
   }));
   const inputSchema = toolInputSchema({ ...view.inputSchema, profile: profileParam });
   const callback = (async (args: z.infer<z.ZodObject<Args>> & { profile?: string }): Promise<ViewResult> => {
