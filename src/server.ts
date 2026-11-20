@@ -8,7 +8,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { registerAppViews } from "./apps/index.js";
 import { authMode } from "./auth.js";
-import { ARM_BASE } from "./client.js";
+import { ARM_BASE, textOf } from "./client.js";
 import { SERVER_INSTRUCTIONS } from "./instructions.js";
 import { registerCliTools } from "./tools/cli.js";
 import { registerComputeTools } from "./tools/compute.js";
@@ -20,6 +20,9 @@ import { registerKeyVaultTools } from "./tools/keyvault.js";
 import { registerListTools } from "./tools/lists.js";
 import { registerMonitorTools } from "./tools/monitor.js";
 import { registerScopedTools } from "./tools/scoped.js";
+import { OWN_TO_UPSTREAM } from "./upstream/overlap.js";
+import { registerUpstreamTools, upstreamCommandTier } from "./upstream/register.js";
+import { UPSTREAM_VERSION } from "./upstream/runner.js";
 import { SERVER_NAME, SERVER_VERSION } from "./version.js";
 
 const LOGO_FILE = "azure-512.png";
@@ -30,7 +33,12 @@ const moduleDir = dirname(fileURLToPath(import.meta.url));
 const logoPath = join(moduleDir, "..", "assets", LOGO_FILE);
 const logoBase64 = existsSync(logoPath) ? readFileSync(logoPath).toString("base64") : undefined;
 
-export function createServer(): McpServer {
+export type ServerOptions = {
+  /** Proxy Microsoft's Azure MCP Server tools (stdio only: they run as the local tenant profiles). */
+  upstream?: boolean;
+};
+
+export function createServer(options: ServerOptions = {}): McpServer {
   const server = new McpServer(
     {
       name: SERVER_NAME,
@@ -51,6 +59,12 @@ export function createServer(): McpServer {
   registerMonitorTools(server);
   registerCliTools(server);
   registerAppViews(server);
+  if (options.upstream) {
+    const own = new Set<string>();
+    // The SDK keeps registered tools in a private map; titles are only needed for de-duplication.
+    for (const tool of Object.values((server as unknown as { _registeredTools: Record<string, { title?: string }> })._registeredTools ?? {})) if (tool.title) own.add(tool.title);
+    registerUpstreamTools(server, own);
+  }
 
   if (logoBase64) {
     server.registerResource(
@@ -70,7 +84,22 @@ export function createServer(): McpServer {
         {
           uri: uri.href,
           mimeType: "application/json",
-          text: JSON.stringify({ server: SERVER_NAME, version: SERVER_VERSION, auth_mode: authMode(), arm_base: ARM_BASE, tools: apiReference() }, null, 2),
+          text: JSON.stringify(
+            {
+              server: SERVER_NAME,
+              version: SERVER_VERSION,
+              auth_mode: authMode(),
+              arm_base: ARM_BASE,
+              microsoft_azure_mcp: UPSTREAM_VERSION,
+              // Each own tool with the Microsoft command that does the same job and the tier it is gated at here.
+              tools: apiReference().map((entry) => {
+                const commands = OWN_TO_UPSTREAM[textOf(entry.tool)] ?? [];
+                return commands.length ? { ...entry, microsoft: commands.map((name) => ({ command: name, tier: upstreamCommandTier(name) ?? null })) } : entry;
+              }),
+            },
+            null,
+            2,
+          ),
         },
       ],
     }),

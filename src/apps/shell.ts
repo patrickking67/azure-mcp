@@ -15,6 +15,8 @@ import type { McpServer, ToolCallback } from '@modelcontextprotocol/server';
 import type { z } from 'zod';
 import { APP_RUNTIME } from './generated/runtime.js';
 import { READ_ANNOTATIONS } from '../gate.js';
+import { profileParam } from '../tools/define.js';
+import { describeProfiles, resolveProfile, withProfile } from '../profiles.js';
 import { toolInputSchema } from '../schema.js';
 import { SERVER_VERSION } from '../version.js';
 
@@ -73,6 +75,9 @@ th:focus-visible { outline-offset:-2px; }
 .bar.warn > i { background:var(--warn); } .bar.bad > i { background:var(--bad); }
 .status { font-size:12px; color:var(--muted); min-height:1em; margin-bottom:6px; }
 .sr-only { position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap; }
+.viewbar { display:flex; gap:8px; align-items:center; flex-wrap:wrap; justify-content:flex-end; margin:0 0 6px; font-size:12px; }
+.viewbar label { color:var(--muted); }
+.viewbar select, .viewbar button { min-height:28px; padding:3px 8px; font-size:12px; }
 @media (max-width:480px) { .grid { grid-template-columns:repeat(auto-fill, minmax(150px,1fr)); } .card .big { font-size:19px; } }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { transition:none !important; animation:none !important; scroll-behavior:auto !important; } }
 `;
@@ -145,16 +150,54 @@ function table(root, rows, columns, opts = {}) {
 /** Wire the protocol to a view: render(root, view) on each result, with the tool input alongside. */
 async function boot(render) {
   const root = $('#app');
-  const view = { app: null, input: {}, data: null, call: null, redraw: null };
+  const bar = $('#bar');
+  const view = { app: null, input: {}, data: null, call: null, redraw: null, profile: null, meta: null, reload: null };
   const app = new App({ name: ${JSON.stringify(TOOL_PREFIX)}, version: ${JSON.stringify(SERVER_VERSION)} }, {}, { autoResize: true });
   view.app = app;
-  view.call = async (name, args) => resultData(await app.callServerTool({ name, arguments: args }));
+  // Every call a view makes runs in the tenant the view is showing.
+  const withProfile = (args) => (view.profile && !(args && 'profile' in args) ? { ...args, profile: view.profile } : (args ?? {}));
+  view.call = async (name, args) => resultData(await app.callServerTool({ name, arguments: withProfile(args) }));
   const draw = () => { try { render(root, view); } catch (e) { root.innerHTML = errorBox(e.message, 'This view could not render the result.'); } };
-  app.ontoolinput = (p) => { view.input = p.arguments ?? {}; };
-  app.ontoolresult = (p) => {
+  const drawBar = () => {
+    const m = view.meta;
+    if (!m || !bar) return;
+    const many = (m.profiles ?? []).length > 1;
+    bar.innerHTML = '<div class="viewbar">'
+      + (many
+        ? '<label for="vb-profile">Tenant</label><select id="vb-profile">' + m.profiles.map((p) => '<option value="' + esc(p.name) + '"' + (p.name === m.profile ? ' selected' : '') + '>' + esc(p.name) + (p.tenant_id ? ' (' + esc(p.tenant_id.slice(0, 8)) + '…)' : p.kind === 'azure_cli' ? ' (az login)' : '') + '</option>').join('') + '</select>'
+        : '<span class="badge">' + esc(m.profile ?? '') + '</span>')
+      + '<button type="button" id="vb-refresh" aria-label="Reload this view">Refresh</button>'
+      + '<span class="muted" id="vb-status" role="status">' + (m.loaded_at ? 'Loaded ' + esc(new Date(m.loaded_at).toLocaleTimeString()) : '') + '</span></div>';
+    const sel = $('#vb-profile', bar);
+    if (sel) sel.onchange = () => view.reload({ profile: sel.value });
+    $('#vb-refresh', bar).onclick = () => view.reload({});
+  };
+  const accept = (p) => {
+    const sc = p.structuredContent;
+    if (sc && sc._view) { view.meta = sc._view; view.profile = sc._view.profile; drawBar(); }
+    if (p.isError) {
+      const text = (p.content ?? []).find((c) => c.type === 'text')?.text ?? 'tool failed';
+      root.innerHTML = errorBox(text, 'Azure did not return data for this view. Try another tenant, Refresh, or ask for Test_Connection.');
+      return;
+    }
     try { view.data = resultData(p); } catch (e) { root.innerHTML = errorBox(e.message, 'Azure did not return data for this view. Ask for Test_Connection or Status_Server to see why.'); return; }
     draw();
   };
+  /** Re-run this view's own tool with the same arguments, optionally changed (another tenant). */
+  view.reload = async (changes) => {
+    const tool = view.meta?.tool;
+    if (!tool) return;
+    const args = { ...view.input, ...(view.profile ? { profile: view.profile } : {}), ...changes };
+    view.input = args;
+    const status = $('#vb-status', bar);
+    if (status) status.textContent = 'Loading…';
+    root.setAttribute('aria-busy', 'true');
+    try { accept(await app.callServerTool({ name: tool, arguments: args })); }
+    catch (e) { root.innerHTML = errorBox(e.message, 'Could not reload this view.'); }
+    finally { root.removeAttribute('aria-busy'); }
+  };
+  app.ontoolinput = (p) => { view.input = p.arguments ?? {}; };
+  app.ontoolresult = (p) => accept(p);
   app.onhostcontextchanged = (ctx) => { applyContext(ctx); };
   await app.connect();
   applyContext(app.getHostContext());
@@ -182,6 +225,7 @@ export function renderPage(page: ViewPage): string {
 <style>${BASE_CSS}${page.css ?? ''}</style>
 </head>
 <body>
+<header id="bar"></header>
 <main id="app"><div class="empty" role="status">Loading…</div></main>
 <script type="module">
 ${APP_RUNTIME}
@@ -249,14 +293,18 @@ export function registerView<Args extends z.ZodRawShape>(server: McpServer, view
   registerAppResource(server, view.title, uri, { description: `${view.title} view` }, () => ({
     contents: [{ uri, mimeType: RESOURCE_MIME_TYPE, text: html }],
   }));
-  const inputSchema = toolInputSchema(view.inputSchema);
-  const callback = (async (args: z.infer<z.ZodObject<Args>>): Promise<ViewResult> => {
+  const inputSchema = toolInputSchema({ ...view.inputSchema, profile: profileParam });
+  const callback = (async (args: z.infer<z.ZodObject<Args>> & { profile?: string }): Promise<ViewResult> => {
+    let meta: Record<string, unknown> = { tool: view.name, profile: null, profiles: describeProfiles() };
     try {
-      const data = await view.load(args);
-      return { content: [{ type: 'text', text: JSON.stringify(data, null, 2) }], structuredContent: data };
+      const profile = resolveProfile(args.profile);
+      meta = { ...meta, profile: profile.name, loaded_at: new Date().toISOString() };
+      const data = await withProfile(profile, () => view.load(args));
+      return { content: [{ type: 'text', text: JSON.stringify(data, null, 2) }], structuredContent: { ...data, _view: meta } };
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
-      return { content: [{ type: 'text', text: message }], isError: true };
+      // The view still gets its tenant list, so the user can switch tenants from an error.
+      return { content: [{ type: 'text', text: message }], structuredContent: { _view: meta }, isError: true };
     }
     // ToolCallback is a conditional type the compiler cannot resolve for a
     // generic Args; the shape is right (the parsed arguments in, CallToolResult out).

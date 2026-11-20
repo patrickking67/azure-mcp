@@ -2,8 +2,10 @@
 
 import type { McpServer } from "@modelcontextprotocol/server";
 import { z } from "zod";
-import { AZ_LABEL, cliConfigDir } from "../az.js";
-import { authMode, BASE_AUTH_MODE, CLIENT_ID, MANAGED_IDENTITY_CLIENT_ID, TENANT_ID, currentCaller, oboEnabled } from "../auth.js";
+import { AZ_LABEL, cliConfigDirs } from "../az.js";
+import { authMode, BASE_AUTH_MODE, MANAGED_IDENTITY_CLIENT_ID, currentCaller, oboEnabled } from "../auth.js";
+import { configProblems, currentProfile, DEFAULT_PROFILE, describeProfiles } from "../profiles.js";
+import { upstreamStatus } from "../upstream/runner.js";
 import { armCollect, armRequest, azAccountShow, dig, formatResult, isJsonObject, propsOf, resolveSubscription, textOf, type JsonValue } from "../client.js";
 import { envValue } from "../env.js";
 import { gateStatus } from "../gate.js";
@@ -16,7 +18,7 @@ export function registerCoreTools(server: McpServer): void {
     name: "Status_Server",
     title: "Server Status",
     description:
-      "Report this server's configuration without calling Azure: version, auth mode, which settings are filled in, the Azure CLI it found, and the write gate. Call this first when tools fail or seem to be missing.",
+      "Report this server's configuration without calling Azure: version, tenant profiles, which settings are filled in, the Azure CLI it found, the bundled Microsoft Azure MCP server, and the write gate. Call this first when tools fail or seem to be missing.",
     tier: "read",
     inputSchema: {},
     handler: () =>
@@ -27,12 +29,13 @@ export function registerCoreTools(server: McpServer): void {
           base_auth_mode: BASE_AUTH_MODE,
           remote_caller: currentCaller()?.upn ?? null,
           on_behalf_of_enabled: oboEnabled(),
-          tenant_id: TENANT_ID ?? null,
-          client_id: CLIENT_ID ?? null,
+          default_profile: DEFAULT_PROFILE.name,
+          profiles: describeProfiles(),
+          profile_problems: configProblems,
           managed_identity_client_id: MANAGED_IDENTITY_CLIENT_ID ?? null,
-          default_subscription: envValue("AZURE_SUBSCRIPTION_ID") ?? null,
           azure_cli: AZ_LABEL,
-          azure_cli_config_dir: cliConfigDir() ?? "(the user's own ~/.azure)",
+          azure_cli_config_dirs: { cli: "(the user's own ~/.azure)", ...cliConfigDirs() },
+          microsoft_azure_mcp: upstreamStatus() as JsonValue,
           gate: gateStatus(),
           platform: `${process.platform}/${process.arch}`,
           node: process.version,
@@ -59,20 +62,37 @@ export function registerCoreTools(server: McpServer): void {
     inputSchema: {},
     handler: async () => {
       const mode = authMode();
+      const profile = currentProfile();
       const account = mode === "azure_cli" ? await azAccountShow() : null;
       const { items } = await armCollect("/subscriptions", { apiVersion: "2022-12-01" });
       const caller = currentCaller();
       return formatResult({
         ok: true,
+        profile: mode === "on_behalf_of" || mode === "managed_identity" ? null : profile.name,
         auth_mode: mode,
         signed_in_user:
           account?.user ??
-          (caller ? { type: "user", upn: caller.upn, oid: caller.oid } : mode === "service_principal" ? { type: "servicePrincipal", client_id: CLIENT_ID ?? null } : { type: "managedIdentity", client_id: MANAGED_IDENTITY_CLIENT_ID ?? null }),
-        tenant_id: TENANT_ID ?? account?.tenantId ?? envValue("ENTRA_TENANT_ID") ?? null,
-        default_subscription: envValue("AZURE_SUBSCRIPTION_ID") ?? account?.id ?? null,
+          (caller
+            ? { type: "user", upn: caller.upn, oid: caller.oid }
+            : mode === "service_principal"
+              ? { type: "servicePrincipal", client_id: profile.clientId ?? null }
+              : { type: "managedIdentity", client_id: MANAGED_IDENTITY_CLIENT_ID ?? null }),
+        tenant_id: (mode === "service_principal" ? profile.tenantId : undefined) ?? account?.tenantId ?? envValue("ENTRA_TENANT_ID") ?? null,
+        default_subscription: profile.subscriptionId ?? account?.id ?? null,
         subscription_count: items.length,
+        subscriptions: items.slice(0, 50).map((s) => ({ id: s.subscriptionId ?? null, name: s.displayName ?? null, state: s.state ?? null })),
       });
     },
+  });
+
+  defineTool(server, {
+    name: "List_Tenant_Profiles",
+    title: "List Tenant Profiles",
+    description:
+      "List the tenant profiles this server can run as: each service principal (tenant id, shortened client id, default subscription) and \"cli\" for your own az login. Pass a profile's name as `profile` on any tool to run it in that tenant. No secrets are shown and Azure is not called.",
+    tier: "read",
+    inputSchema: {},
+    handler: () => Promise.resolve(formatResult({ default_profile: DEFAULT_PROFILE.name, profiles: describeProfiles(), problems: configProblems })),
   });
 
   defineTool(server, {

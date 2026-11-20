@@ -9,7 +9,7 @@ import { isDestructiveAllowed, isWriteMode } from "./gate.js";
 import { createServer } from "./server.js";
 
 async function main(): Promise<void> {
-  const server = createServer();
+  const server = createServer({ upstream: true });
   await server.connect(new StdioServerTransport());
   const auth = BASE_AUTH_MODE === "azure_cli" ? `azure cli via ${AZ_LABEL}` : BASE_AUTH_MODE.replace("_", " ");
   const gate = isWriteMode() ? (isDestructiveAllowed() ? "write+destructive" : "write") : "read";

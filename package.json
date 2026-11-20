@@ -1,10 +1,10 @@
 {
   "name": "azure-mcp",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "private": true,
   "license": "MIT",
   "type": "module",
-  "description": "MCP server for Microsoft Azure and Entra ID: dedicated tools, the Azure CLI one-to-one, interactive views, and a remote Entra-protected lane.",
+  "description": "MCP server for Microsoft Azure and Entra ID: Microsoft's Azure MCP Server one-to-one, dedicated tools, the Azure CLI one-to-one, multi-tenant service principal profiles, interactive views, and a remote Entra-protected lane.",
   "bin": {
     "azure-mcp": "dist/index.js",
     "azure-mcp-remote": "dist/remote.js"
@@ -12,7 +12,7 @@
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "check": "npm run typecheck && npm run lint && npm test && npm run manifest:check",
+    "check": "npm run typecheck && npm run lint && npm run upstream:check && npm test && npm run manifest:check",
     "start": "node dist/index.js",
     "start:remote": "node dist/remote.js",
     "test": "npm run build && node scripts/build-plugin.mjs --check && node --test test/*.test.mjs",
@@ -24,9 +24,12 @@
     "deploy:plan": "bash scripts/deploy-azure.sh --dry-run",
     "plugin:build": "npm run build && node scripts/build-plugin.mjs",
     "plugin:check": "node scripts/build-plugin.mjs --check",
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "upstream:sync": "node scripts/sync-upstream.mjs",
+    "upstream:check": "node scripts/sync-upstream.mjs --check"
   },
   "dependencies": {
+    "@azure/mcp": "4.0.0-beta.9",
     "@modelcontextprotocol/ext-apps": "^2.0.4",
     "@modelcontextprotocol/node": "^2.1.2",
     "@modelcontextprotocol/server": "^2.4.0",
@@ -45,5 +48,10 @@
   },
   "engines": {
     "node": ">=20"
+  },
+  "author": {
+    "name": "Patrick King",
+    "email": "patrickk@divergeit.com",
+    "url": "https://www.divergeit.com"
   }
 }

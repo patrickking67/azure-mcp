@@ -2,10 +2,14 @@
 // equivalent and the API reference entry are declared once per tool and cannot drift apart.
 
 import type { McpServer, ToolCallback } from "@modelcontextprotocol/server";
-import type { z } from "zod";
+import { z } from "zod";
 import { annotationsFor, confirmParam, requireTier, type Tier } from "../gate.js";
 import type { JsonObject } from "../client.js";
+import { PROFILE_PARAM_DESCRIPTION, resolveProfile, withProfile } from "../profiles.js";
 import { toolInputSchema } from "../schema.js";
+
+/** Every tool takes this: which tenant profile the call runs as. */
+export const profileParam = z.string().max(100).optional().describe(PROFILE_PARAM_DESCRIPTION);
 
 /** What a handler receives: the parsed output of the tool's input shape. */
 type ToolArgs<S extends z.ZodRawShape> = z.infer<z.ZodObject<S>>;
@@ -49,11 +53,12 @@ export function defineTool<S extends z.ZodRawShape>(server: McpServer, spec: Too
   }
   const gated = spec.tier !== "read";
   // The shape is wrapped here, once, so every tool is advertised and validated as one object schema.
-  const inputSchema = toolInputSchema(gated ? { ...spec.inputSchema, confirm: confirmParam } : spec.inputSchema);
+  const inputSchema = toolInputSchema({ ...spec.inputSchema, ...(gated ? { confirm: confirmParam } : {}), profile: profileParam });
   const description = spec.cli ? `${spec.description} CLI: \`${spec.cli}\`.` : spec.description;
-  const callback = (async (args: ToolArgs<S>) => {
+  const callback = (async (args: ToolArgs<S> & { profile?: string }) => {
     if (gated) requireTier(spec.name, spec.runtimeTier ? spec.runtimeTier(args) : spec.tier, spec.impact);
-    return spec.handler(args);
+    const profile = resolveProfile(args.profile);
+    return withProfile(profile, () => spec.handler(args));
     // ToolCallback is a conditional type the compiler cannot resolve for a generic S.
   }) as unknown as ToolCallback<typeof inputSchema>;
   server.registerTool(

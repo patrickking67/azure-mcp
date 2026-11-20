@@ -1,8 +1,9 @@
 // HTTP clients for the four planes the tools reach: ARM, Microsoft Graph, Key Vault and Log Analytics.
 
 import { azJson } from "./az.js";
-import { authMode, getToken } from "./auth.js";
+import { authMode, getToken, USE_MANAGED_IDENTITY } from "./auth.js";
 import { envValue } from "./env.js";
+import { currentProfile } from "./profiles.js";
 
 export type JsonValue = null | boolean | number | string | JsonValue[] | { [key: string]: JsonValue };
 export type JsonObject = { [key: string]: JsonValue };
@@ -166,16 +167,18 @@ export async function resolveSubscription(subscriptionId?: string): Promise<stri
     if (!/^[0-9a-fA-F-]{36}$/.test(id)) throw new Error(`subscription_id must be a subscription GUID, got '${id}'.`);
     return id;
   }
-  const configured = envValue("AZURE_SUBSCRIPTION_ID");
+  const profile = currentProfile();
+  const configured = USE_MANAGED_IDENTITY ? envValue("AZURE_SUBSCRIPTION_ID") : profile.subscriptionId;
   if (configured) return configured;
   const mode = authMode();
   if (mode !== "azure_cli") {
-    const hit = soleSubscription.get(mode);
+    const cacheKey = mode === "service_principal" ? `sp|${profile.name}` : mode;
+    const hit = soleSubscription.get(cacheKey);
     if (hit) return hit;
     const { items } = await armCollect("/subscriptions", { apiVersion: "2022-12-01" });
     if (items.length === 1 && typeof items[0].subscriptionId === "string") {
       // On-behalf-of callers differ, so only the server's own identity is cached.
-      if (mode !== "on_behalf_of") soleSubscription.set(mode, items[0].subscriptionId);
+      if (mode !== "on_behalf_of") soleSubscription.set(cacheKey, items[0].subscriptionId);
       return items[0].subscriptionId;
     }
     throw new Error(`This identity can reach ${items.length} subscriptions. Pass subscription_id (List_Subscriptions shows them) or set a default subscription id in the connector settings.`);

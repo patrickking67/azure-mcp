@@ -7,6 +7,8 @@ import { registerCostView } from "./views/costs.js";
 import { registerEstateView } from "./views/estate.js";
 import { registerResourceView } from "./views/resources.js";
 import { registerSecurityView } from "./views/security.js";
+import { registerServicesView } from "./views/services.js";
+import { registerTenantView } from "./views/tenants.js";
 import { registerVmView } from "./views/vms.js";
 import { registerWebAppView } from "./views/webapps.js";
 
@@ -17,4 +19,6 @@ export function registerAppViews(server: McpServer): void {
   registerCostView(server);
   registerResourceView(server);
   registerSecurityView(server);
+  registerTenantView(server);
+  registerServicesView(server);
 }
