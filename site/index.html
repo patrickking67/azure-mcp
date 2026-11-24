@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>azure-mcp: Azure and Entra ID for MCP, read-only by default</title>
+<meta name="description" content="An MCP server for Microsoft Azure and Entra ID. The whole Azure CLI behind a command classifier, three tiers with operator-set gates, tenant profiles and interactive views.">
+<meta name="color-scheme" content="light dark">
+<meta property="og:type" content="website">
+<meta property="og:title" content="azure-mcp: Azure and Entra ID for MCP, read-only by default">
+<meta property="og:description" content="The whole Azure CLI behind a command classifier, with tiered write gates and explicit confirm.">
+<meta property="og:url" content="https://patrickking67.github.io/azure-mcp/">
+<meta name="twitter:card" content="summary">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<style>
+:root{--bg:#fbfaf7;--fg:#1b1d21;--muted:#565b64;--line:#dedbd2;--card:#fff;--accent:#0b5fd6;--accent-fg:#fff;--code:#f1efe8;--read:#1a7a43;--write:#8a5a00;--destr:#b3261e}
+@media (prefers-color-scheme:dark){:root{--bg:#121417;--fg:#ecebe6;--muted:#a3a8b0;--line:#2c3037;--card:#1a1d21;--accent:#6ea8ff;--accent-fg:#0b1220;--code:#1f2328;--read:#5fd38c;--write:#f0b955;--destr:#ff8a80}}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.6 ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif}
+a{color:var(--accent)}
+a:focus-visible,summary:focus-visible,button:focus-visible{outline:3px solid var(--accent);outline-offset:2px;border-radius:4px}
+.skip{position:absolute;left:-999px;top:0;background:var(--accent);color:var(--accent-fg);padding:.5rem 1rem}
+.skip:focus{left:0}
+.wrap{max-width:62rem;margin:0 auto;padding:0 16px}
+header.top{border-bottom:1px solid var(--line)}
+header.top .wrap{display:flex;gap:1rem;align-items:center;justify-content:space-between;min-height:3.5rem;flex-wrap:wrap}
+.brand{font:600 1rem ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--fg);text-decoration:none}
+nav a{margin-left:1.25rem;color:var(--muted);text-decoration:none;font-size:.95rem}
+nav a:hover{color:var(--fg);text-decoration:underline}
+.hero{padding:4rem 0 2.5rem}
+h1{font-size:clamp(2rem,6vw,3.4rem);line-height:1.1;margin:0 0 1rem;letter-spacing:-.02em;max-width:18ch}
+.lede{font-size:1.15rem;color:var(--muted);max-width:42rem;margin:0 0 1.75rem}
+.cta{display:flex;gap:.75rem;flex-wrap:wrap}
+.btn{display:inline-block;padding:.7rem 1.1rem;border-radius:8px;border:1px solid var(--accent);text-decoration:none;font-weight:600;min-height:44px}
+.btn.primary{background:var(--accent);color:var(--accent-fg)}
+section{padding:2.25rem 0;border-top:1px solid var(--line)}
+h2{font-size:1.5rem;margin:0 0 .5rem;letter-spacing:-.01em}
+h2+p{color:var(--muted);margin-top:0;max-width:42rem}
+pre,code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.9rem}
+pre{background:var(--code);border:1px solid var(--line);border-radius:8px;padding:1rem;overflow-x:auto;margin:.75rem 0}
+:not(pre)>code{background:var(--code);padding:.1rem .35rem;border-radius:4px}
+.tiers,.feat{display:grid;gap:1rem;grid-template-columns:repeat(auto-fit,minmax(15rem,1fr));margin-top:1rem}
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:1rem 1.1rem}
+.card h3{margin:0 0 .35rem;font-size:1.05rem}
+.card p{margin:.25rem 0;color:var(--muted);font-size:.95rem}
+.tag{font:700 .75rem ui-monospace,monospace;text-transform:uppercase;letter-spacing:.06em}
+.read .tag{color:var(--read)}.write .tag{color:var(--write)}.destr .tag{color:var(--destr)}
+.stats{display:flex;flex-wrap:wrap;gap:1.5rem 2.5rem;margin:1.5rem 0 0;padding:0;list-style:none}
+.stats b{display:block;font-size:1.8rem;line-height:1.1}
+.stats span{color:var(--muted);font-size:.9rem}
+footer{border-top:1px solid var(--line);padding:1.5rem 0 3rem;color:var(--muted);font-size:.9rem}
+@media (max-width:480px){nav a{margin:0 1rem 0 0}.hero{padding:2.5rem 0 1.5rem}}
+</style>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<header class="top"><div class="wrap">
+<a class="brand" href="./">azure-mcp</a>
+<nav aria-label="Primary"><a href="#safety">Safety</a><a href="#install">Install</a><a href="#features">Features</a><a href="https://github.com/patrickking67/azure-mcp">GitHub</a></nav>
+</div></header>
+<main id="main">
+<div class="wrap">
+<div class="hero">
+<h1>Azure and Entra ID for MCP, read-only by default.</h1>
+<p class="lede">Give a model the whole Azure CLI, one command to one tool call, without giving it the keys to everything. Every <code>az</code> command is classified before it runs, and each tier sits behind a gate that only the operator can open.</p>
+<div class="cta"><a class="btn primary" href="#install">Install</a><a class="btn" href="https://github.com/patrickking67/azure-mcp">View source</a></div>
+<ul class="stats" aria-label="Project numbers">
+<li><b>105</b><span>dedicated tools</span></li>
+<li><b>74</b><span>Microsoft Azure MCP tools, proxied</span></li>
+<li><b>8</b><span>interactive views</span></li>
+<li><b>3</b><span>tiers, 2 gates, 1 confirm</span></li>
+</ul>
+</div>
+
+<section id="safety">
+<h2>Safety model</h2>
+<p>The design assumes the model will sometimes be wrong or be talked into something by content it reads, such as a resource tag or a log line. The operator decides what is possible; the model only decides what to ask for within that.</p>
+<div class="tiers">
+<div class="card read"><span class="tag">Read</span><h3>Nothing to open</h3><p><code>List_*</code>, <code>Get_*</code>, <code>Query_*</code>, views and <code>Az_CLI</code>.</p></div>
+<div class="card write"><span class="tag">Write</span><h3>AZURE_MODE=write</h3><p>Creates, updates, starts, tags and credential reads. Each call also needs <code>confirm: true</code>.</p></div>
+<div class="card destr"><span class="tag">Destructive</span><h3>Plus AZURE_ALLOW_DESTRUCTIVE=true</h3><p>Delete, stop, restart, resize, purge and run-code. Needs both settings and <code>confirm: true</code>.</p></div>
+</div>
+<p>Write tools stay listed in read mode and refuse with a message that names the setting, so a refusal is explainable. Remotely, the caller also needs the <code>Azure.Write</code> or <code>Azure.Destructive</code> Entra app role, and everything is bounded by the identity's own Azure RBAC.</p>
+<h3>The CLI is classified, not trusted</h3>
+<p>Command words are lowercased like the CLI does, long options match their abbreviations, repeated options are all checked, and global options do not hide a command. Reads that return keys, secrets or connection strings count as writes. Login, config, interactive sessions and anything that reaches local files are always refused.</p>
+</section>
+
+<section id="install">
+<h2>Install</h2>
+<p>Needs Node.js 20 or later and the Azure CLI signed in with <code>az login</code>. With no settings it runs read-only as your sign-in.</p>
+<h3>Claude Code plugin</h3>
+<pre><code>/plugin marketplace add patrickking67/azure-mcp
+/plugin install azure@azure-mcp</code></pre>
+<h3>From a clone</h3>
+<pre><code>git clone https://github.com/patrickking67/azure-mcp.git &amp;&amp; cd azure-mcp
+npm ci &amp;&amp; npm run build
+claude mcp add azure --scope user --env AZURE_MODE=read -- node "$(pwd)/dist/index.js"</code></pre>
+<h3>Codex</h3>
+<pre><code>codex plugin marketplace add patrickking67/azure-mcp
+codex plugin add azure@azure-mcp</code></pre>
+<p>Claude Desktop (.mcpb) and a remote lane on Azure Container Apps behind Entra ID are covered in the <a href="https://github.com/patrickking67/azure-mcp#quickstart">README</a> and <a href="https://github.com/patrickking67/azure-mcp/blob/main/docs/remote.md">remote guide</a>.</p>
+</section>
+
+<section id="features">
+<h2>Features</h2>
+<div class="feat">
+<div class="card"><h3>The whole Azure CLI</h3><p><code>Az_CLI</code> for reads, <code>Az_CLI_Run</code> for the rest at the tier each command earns, <code>Az_CLI_Help</code> for arguments.</p></div>
+<div class="card"><h3>Microsoft's server, gated</h3><p>Every tool of the pinned <code>@azure/mcp</code>, proxied one-to-one and gated per command.</p></div>
+<div class="card"><h3>Tenant profiles</h3><p>One server across several Entra tenants, with service principals or your az login, chosen per call.</p></div>
+<div class="card"><h3>Interactive views</h3><p>Estate, virtual machines, web apps, costs, resources, security, tenants and an Azure Services explorer, rendered inline by MCP Apps hosts.</p></div>
+<div class="card"><h3>Two transports</h3><p>Local stdio, or Streamable HTTP on Container Apps where every call runs as the signed-in user via on-behalf-of.</p></div>
+<div class="card"><h3>Tested without Azure</h3><p>The test suite drives the server with a fake <code>az</code> and never signs in. Classifier changes need a test that fails without them.</p></div>
+</div>
+</section>
+</div>
+</main>
+<footer><div class="wrap">MIT licensed. Azure, Entra ID and the Azure logo are trademarks of Microsoft; this project is not affiliated with or endorsed by Microsoft. <a href="https://github.com/patrickking67/azure-mcp">Source</a> · <a href="https://github.com/patrickking67/azure-mcp/blob/main/SECURITY.md">Security</a> · <a href="https://github.com/patrickking67/azure-mcp/blob/main/CHANGELOG.md">Changelog</a></div></footer>
+</body>
+</html>

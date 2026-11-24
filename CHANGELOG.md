@@ -15,6 +15,7 @@ All notable changes to this project are listed here. The format follows [Keep a 
 
 ### Added
 
+- GitHub Pages site (`site/`, deployed by `.github/workflows/pages.yml`) with the safety model, install steps and features.
 - Microsoft's Azure MCP Server is pinned at `@azure/mcp` 4.0.0-beta.9: 74 service tools and 575 commands, adding `adme`, `dashboards` (Azure Monitor dashboards with Grafana), `deviceprovisioning`, `netappfiles` and `resiliencyagent`, plus new Advisor, Monitor, IoT Hub, Azure Backup and storage commands. Advisor's list inputs are now arrays (`subscriptions`, `resource-types`).
 - `src/upstream/overlap.ts` maps each dedicated tool to the Microsoft command that does the same job. The `azure://reference/api` resource and the server instructions use it, and a test fails if a catalog sync removes a mapped command.
 - `View_Azure_Services`: searches every command across all services, filters by tier, shows the dedicated tool that does the same job, reads parameter forms from the pinned catalog (no azmcp start for a form, and it now works in the `all` layout), takes object and array parameters, keeps entered values, shows the exact tool call, and renders list results as a sortable table. Its tool takes `command` to return one command's schema.
