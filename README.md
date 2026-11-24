@@ -82,14 +82,14 @@ The design assumes the model will sometimes be wrong or be talked into something
 
 Found a way around any of this? See [SECURITY.md](SECURITY.md).
 
-## Tools (102)
+## Tools (105)
 
 Every dedicated tool carries its Azure CLI equivalent in its description and in the `azure://reference/api` resource.
 
 | Kind | Tools |
 | --- | --- |
-| Read (78) | `List_*`, `Get_*` (except `Get_Key_Vault_Secret`), `Query_*`, `Resource_Graph_Query`, `Resource_Health`, `ARM_GET`, `Graph_GET`, `Az_CLI`, `Az_CLI_Help`, `Status_Server`, `Status_Gate`, `Test_Connection` |
-| Interactive (6, read) | `View_Estate`, `View_Virtual_Machines`, `View_Web_Apps`, `View_Costs`, `View_Resources`, `View_Security` |
+| Read (79) | `List_*`, `Get_*` (except `Get_Key_Vault_Secret`), `Query_*`, `Resource_Graph_Query`, `Resource_Health`, `ARM_GET`, `Graph_GET`, `Az_CLI`, `Az_CLI_Help`, `Status_Server`, `Status_Gate`, `Test_Connection` |
+| Interactive (8, read) | `View_Tenants`, `View_Estate`, `View_Virtual_Machines`, `View_Web_Apps`, `View_Costs`, `View_Resources`, `View_Security`, `View_Azure_Services` |
 | Write (7) | `Start_VM`, `Start_Web_App`, `Start_AKS_Cluster`, `Tag_Resource`, `Create_Resource_Group`, `Set_Key_Vault_Secret`, `Get_Key_Vault_Secret` (credential read) |
 | Destructive (11) | `Stop_VM`, `Restart_VM`, `Resize_VM`, `Stop_Web_App`, `Restart_Web_App`, `Stop_AKS_Cluster`, `Delete_Resource_Group`, `Delete_Resource`, `ARM_Request`, `Graph_Request`, `Az_CLI_Run` |
 
