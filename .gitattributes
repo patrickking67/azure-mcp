@@ -9,3 +9,4 @@
 # Build output kept in git so the plugin installs without npm. Regenerate with npm run plugin:build / apps:runtime.
 plugin/server/azure-mcp.mjs linguist-generated=true
 src/apps/generated/** linguist-generated=true
+site/** linguist-documentation=true
