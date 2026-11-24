@@ -31,6 +31,7 @@ All notable changes to this project are listed here. The format follows [Keep a 
 
 ### Fixed
 
+- README tool counts were stale: 105 dedicated tools (79 read, 8 views, 7 write, 11 destructive), and the views list now includes `View_Tenants` and `View_Azure_Services`.
 - Tool output no longer shows `[object Object]` when Azure returns an object where a string was expected (power state, subscription ids, cost columns, token errors).
 - `azRun` always rejects with an `Error`, and the remote HTTP server catches a rejection that escapes its request handler instead of leaving it unhandled.
 
