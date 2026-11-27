@@ -29,7 +29,7 @@
     "upstream:check": "node scripts/sync-upstream.mjs --check"
   },
   "dependencies": {
-    "@azure/mcp": "4.0.0-beta.9",
+    "@azure/mcp": "4.0.0-beta.10",
     "@modelcontextprotocol/ext-apps": "^2.0.4",
     "@modelcontextprotocol/node": "^2.1.2",
     "@modelcontextprotocol/server": "^2.4.0",
